@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>[hidden]{display:none!important}img{max-width:100%}</style></head><body>
-<title>Evidence Judge</title>
+<title>Agentic-based Multimodal HyperGraphRAG as Reranker</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap">
@@ -68,7 +68,7 @@ details.fig[open] summary{margin-bottom:10px}
 .btn:disabled{opacity:.45;cursor:default}
 .explain{margin:0;max-width:80ch}
 
-.query{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.9fr);gap:14px}
+.query{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.9fr);gap:14px;align-items:start}
 .qbox{border-radius:8px;padding:14px 16px;background:var(--blue-soft);display:grid;gap:6px;align-content:start;min-width:0}
 .qbox.img{background:var(--bg);border:1px dashed var(--line)}
 .qtext{color:var(--ink);font-weight:600;font-size:16px}
@@ -183,16 +183,98 @@ footer{font-size:12px;color:var(--muted);display:grid;gap:4px}
   .brow,.axis{grid-template-columns:100px minmax(0,1fr) 54px}
   .judgecfg{grid-template-columns:1fr}
 }
+
+/* ---- redesign layer ---- */
+:root{--hero:#0F1B33;--hero-ink:#E9EEF6;--hero-mut:#9FB0C8;--shadow:0 1px 2px rgba(20,33,61,.06),0 8px 28px rgba(20,33,61,.06)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--hero:#0A1222;--shadow:0 1px 2px rgba(0,0,0,.3),0 8px 28px rgba(0,0,0,.25)}}
+:root[data-theme="dark"]{--hero:#0A1222;--shadow:0 1px 2px rgba(0,0,0,.3),0 8px 28px rgba(0,0,0,.25)}
+.hero{background:var(--hero);color:var(--hero-ink);background-image:radial-gradient(rgba(255,255,255,.06) 1px,transparent 1px);background-size:22px 22px}
+.hero-in,.kpis{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.hero-in{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:32px;align-items:center;padding-block:44px 28px}
+.hero-eb{font:500 11.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:#E39A55;margin-bottom:14px}
+.hero h1{color:#fff;font:700 clamp(32px,4.4vw,52px)/1.04 var(--display);letter-spacing:-.015em;max-width:21ch}
+.lead{color:var(--hero-mut);font-size:16.5px;line-height:1.6;max-width:62ch;margin:18px 0 0}
+.lead em{color:#fff;font-style:normal;font-weight:600}
+.flow{list-style:none;padding:0;margin:24px 0 0;display:flex;flex-wrap:wrap;gap:8px 4px;align-items:center}
+.flow li{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--hero-ink);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 12px 6px 6px}
+.flow li span{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.14);font:600 11px/1 var(--mono)}
+.flow li:not(:last-child)::after{content:"→";margin-left:6px;color:var(--hero-mut)}
+.flow li.j{border-color:#E39A55;background:rgba(227,154,85,.16)}
+.flow li.j span{background:#E39A55;color:#0F1B33}
+.hero-art svg{width:100%;height:auto;max-width:380px;display:block;margin-left:auto}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;padding-block:0 32px}
+.kpis div{border-top:1px solid rgba(255,255,255,.14);padding:16px 18px 0 0;display:grid;gap:4px}
+.kpis b{font:600 22px/1.1 var(--mono);color:#fff;font-variant-numeric:tabular-nums}
+.kpis span{font-size:13px;color:var(--hero-mut);max-width:34ch}
+.wrap{padding-block:36px 64px;gap:20px}
+.sechead{display:grid;gap:8px;margin-top:4px}
+.sechead h2{font-size:clamp(22px,2.6vw,28px);max-width:40ch}
+.panel{border-radius:14px;box-shadow:var(--shadow)}
+.tabs{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:5px;gap:4px;box-shadow:var(--shadow)}
+.tab{border:0;border-radius:9px;padding:10px 16px;flex:1 1 160px;background:transparent}
+.tab[aria-selected="true"]{background:var(--ink);box-shadow:none}
+.tab[aria-selected="true"] b{color:var(--panel)} .tab[aria-selected="true"] span{color:var(--panel);opacity:.75}
+.tab.try{background:var(--amber-soft);border:0}
+.tab.try[aria-selected="true"]{background:var(--amber);box-shadow:none}
+.tab.try[aria-selected="true"] b,.tab.try[aria-selected="true"] span{color:#fff}
+.stepper{padding:18px 20px 6px;border-bottom:1px solid var(--line);position:relative}
+.step{border-bottom:0;padding:0 8px 14px;justify-items:start;position:relative}
+.step::before{content:"";position:absolute;top:13px;left:36px;right:-8px;height:2px;background:var(--line)}
+.step:last-child::before{display:none}
+.step.done::before{background:var(--ink)}
+.step .n{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--line);background:var(--panel);font:600 12px/1 var(--mono);letter-spacing:0;position:relative;z-index:1;color:var(--muted)}
+.step.done .n{background:var(--ink);border-color:var(--ink);color:var(--panel)}
+.step.on .n{border-color:var(--ink);color:var(--ink);box-shadow:0 0 0 4px var(--blue-soft)}
+.step.judge.on .n{border-color:var(--amber);color:var(--amber-ink);box-shadow:0 0 0 4px var(--amber-soft)}
+.step .t{margin-top:8px}
+.row{border-radius:10px}
+.qbox{border-radius:10px}
+@media (max-width:860px){.hero-in{grid-template-columns:1fr}.hero-art{display:none}.kpis{grid-template-columns:1fr;gap:12px}.step::before{left:30px}}
+@media (max-width:760px){.step .t{display:none}.step{justify-items:center}.step::before{left:50%;right:-50%}.tab{flex:1 1 40%}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
+<div class="hero">
+  <div class="hero-in">
+    <div class="hero-text">
+      <div class="hero-eb">Interactive demo · Omar Mellouli</div>
+      <h1>Agentic-based Multimodal HyperGraphRAG as Reranker</h1>
+      <p class="lead">Multimodal RAG often gives the right answer from the wrong evidence. Vector search usually <em>finds</em> the right document but rarely ranks it first. This reranker turns the top-5 candidates into hypergraph facts and lets an LLM judge decide which evidence actually answers the question, with a reason for every choice.</p>
+      <ol class="flow" aria-label="Pipeline">
+        <li><span>1</span>Multimodal query</li>
+        <li><span>2</span>Vector search · top-5</li>
+        <li><span>3</span>Hyperedge facts</li>
+        <li class="j"><span>4</span>LLM judge reranks</li>
+        <li><span>5</span>Grounded answer</li>
+      </ol>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+      <svg viewBox="0 0 360 300">
+        <path d="M70 92 C40 60 120 30 160 58 C200 86 150 140 110 132 C80 126 90 112 70 92Z" fill="rgba(111,168,214,.18)" stroke="rgba(111,168,214,.55)" stroke-width="1.5"/>
+        <path d="M150 60 C190 20 280 40 290 90 C300 140 230 150 200 128 C170 106 120 96 150 60Z" fill="rgba(227,154,85,.16)" stroke="rgba(227,154,85,.6)" stroke-width="1.5"/>
+        <path d="M110 140 C130 110 220 120 230 160 C240 210 160 250 120 220 C90 196 95 160 110 140Z" fill="rgba(111,168,214,.14)" stroke="rgba(111,168,214,.5)" stroke-width="1.5"/>
+        <path d="M220 150 C260 130 320 160 315 205 C310 250 250 262 230 232 C215 210 200 165 220 150Z" fill="rgba(108,194,143,.14)" stroke="rgba(108,194,143,.55)" stroke-width="1.5"/>
+        <g stroke="rgba(233,238,246,.25)" stroke-width="1">
+          <path d="M92 86L142 66M142 66L132 116M92 86L132 116M175 60L250 74M250 74L215 112M175 60L215 112M132 116L150 180M150 180L205 168M205 168L172 220M150 180L172 220M205 168L262 182M262 182L282 220M262 182L245 236"/>
+        </g>
+        <g fill="#E9EEF6"><circle cx="92" cy="86" r="6"/><circle cx="142" cy="66" r="6"/><circle cx="132" cy="116" r="6"/><circle cx="175" cy="60" r="6"/><circle cx="250" cy="74" r="6"/><circle cx="150" cy="180" r="6"/><circle cx="172" cy="220" r="6"/><circle cx="262" cy="182" r="6"/><circle cx="282" cy="220" r="6"/><circle cx="245" cy="236" r="6"/></g>
+        <circle cx="215" cy="112" r="9" fill="#E39A55"/><circle cx="215" cy="112" r="15" fill="none" stroke="#E39A55" stroke-width="1.5" opacity=".6"/>
+        <circle cx="205" cy="168" r="9" fill="#6FA8D6"/>
+      </svg>
+    </div>
+  </div>
+  <div class="kpis">
+    <div><b>78.8% → 84.4%</b><span>Precision@1 on ScienceQA-212</span></div>
+    <div><b>82.2% → 89.9%</b><span>Precision@1 on industrial manuals</span></div>
+    <div><b>98.6%</b><span>right evidence in the top-5, unchanged: the judge reorders, it never loses it</span></div>
+  </div>
+</div>
+
 <div class="wrap">
-  <header>
-    <div class="eyebrow">Master's thesis · interactive demo</div>
-    <h1>Evidence Judge</h1>
-    <p>Multimodal RAG often gives the right answer from the wrong evidence. This demo walks one question through my pipeline: vector search finds five candidates, hypergraph facts describe each one, and an LLM judge reads those facts and decides which evidence actually answers the question.</p>
-    <div class="byline">Omar Mellouli · <em>Diagnosing and Improving Low Retrieval Precision in Multimodal RAG via Agentic-based Multimodal HypergraphRAG</em></div>
-  </header>
+  <div class="sechead">
+    <div class="eyebrow">Walk through a case</div>
+    <h2>Three domains, one failure: the right evidence is found, but not ranked first</h2>
+  </div>
 
 
   <div class="tabs" role="tablist" id="tabs"></div>
@@ -219,7 +301,7 @@ footer{font-size:12px;color:var(--muted);display:grid;gap:4px}
     <div style="display:grid;gap:8px">
       <div class="eyebrow">Try it yourself · two real models</div>
       <h2>Your question, your evidence, your images</h2>
-      <p class="explain">Stage 1 is an independent embedding model, <b style="color:var(--ink)">all-MiniLM-L6-v2</b>, that runs entirely in your browser: no account, no server. Stage 2 is the judge, by default the open-source <b style="color:var(--ink)">Qwen2.5</b> model, also running in your browser on the GPU. Add images to the question or to any candidate: a vision model turns them into text first, as in my thesis (images as text, not CLIP).</p>
+      <p class="explain">Stage 1 is an independent embedding model, <b style="color:var(--ink)">all-MiniLM-L6-v2</b>, that runs entirely in your browser: no account, no server. Stage 2 is the judge, by default the open-source <b style="color:var(--ink)">Qwen2.5</b> model, also running in your browser on the GPU. Add images to the question or to any candidate: a vision model turns them into text first (images as text, not CLIP).</p>
       <div class="chips"><span class="chip" id="chipModel">Embedding model: not loaded (23 MB)</span><span class="chip" id="chipJudge">Judge: checking…</span></div>
     </div>
 
@@ -258,7 +340,7 @@ footer{font-size:12px;color:var(--muted);display:grid;gap:4px}
   </section>
 
   <details class="fig panel" style="padding:14px 16px" open>
-    <summary>The complete pipeline (thesis Fig. 4.8)</summary>
+    <summary>The complete pipeline: preparation once per corpus, reranking per question</summary>
     <figure class="pipe">
       <img src="img/pipeline.webp" width="1346" height="750" alt="Complete pipeline: preparation phase extracts hyperedges once per corpus; query phase runs multimodal vector search for the top-5, looks up their hyperedges and lets an LLM judge rerank them with reasons before answer generation.">
       <figcaption>Top: preparation, once per corpus (hyperedge extraction into a hypergraph). Bottom: per question, vector search for the top-5, fact lookup, and the LLM judge (step 4) that reranks with reasons.</figcaption>
@@ -267,7 +349,7 @@ footer{font-size:12px;color:var(--muted);display:grid;gap:4px}
 
   <section class="panel results" aria-label="Results">
     <div style="display:grid;gap:6px">
-      <div class="eyebrow">Measured results · thesis Ch. 5–6</div>
+      <div class="eyebrow">Measured results · ScienceQA-212 and SulzerDataset</div>
       <h2>Precision@1: is the first evidence the right one?</h2>
     </div>
     <div class="rgrid">
@@ -276,14 +358,14 @@ footer{font-size:12px;color:var(--muted);display:grid;gap:4px}
         <div class="kv"><b>98.6%</b><span>right evidence somewhere in the top-5 after data preparation, but only 78.8% at rank 1. Ranking, not search, is the bottleneck.</span></div>
         <div class="kv"><b>+5.7 / +7.7 pp</b><span>P@1 from the judge on ScienceQA-212 and SulzerDataset. P@5 unchanged: it reorders, it never loses the right text.</span></div>
         <div class="kv"><b>11–14 s</b><span>per query with the judge (×2.4–2.8 latency), under 1 ¢ per precision point.</span></div>
-        <div class="kv"><b>+0.28 pp</b><span>on the full ScienceQA-2120 corpus: reasoning works but is not yet efficient at scale. This is where my PhD direction starts.</span></div>
+        <div class="kv"><b>+0.28 pp</b><span>on the full ScienceQA-2120 corpus: reasoning works but is not yet efficient at scale. The open problem is efficiency.</span></div>
       </div>
     </div>
   </section>
 
   <footer>
-    <span>The three examples are illustrative, written in the style of the thesis data (EHRXQA/MedHyperGraph, SulzerDataset, ScienceQA); they are not taken from the real corpora. The report thumbnails reuse the one sample X-ray from MedHyperGraph Fig. 1; the other thumbnails are drawn icons. Their similarity scores are real: computed with all-MiniLM-L6-v2, the same model the live panel runs. The thesis itself used OpenAI text-embedding-3-large and GPT-4.1. The potassium example in “Try it yourself” is also illustrative; its lab chart is drawn for this demo.</span>
-    <span>All numbers in the results section are the measured thesis results. Embedding model: sentence-transformers/all-MiniLM-L6-v2 (Apache-2.0), int8 weights from the Xenova ONNX build, run here in plain JavaScript. Open-source judge: Qwen2.5-Instruct (Apache-2.0) and Phi-3.5-vision (MIT) through WebLLM, or Qwen2.5-VL through Ollama.</span>
+    <span>The three examples are illustrative, written in the style of the evaluation data (EHRXQA/MedHyperGraph, SulzerDataset, ScienceQA); they are not taken from the real corpora. The report thumbnails reuse the one sample X-ray from MedHyperGraph Fig. 1; the other thumbnails are drawn icons. Their similarity scores are real: computed with all-MiniLM-L6-v2, the same model the live panel runs. The measured results used OpenAI text-embedding-3-large and GPT-4.1. The potassium example in “Try it yourself” is also illustrative; its lab chart is drawn for this demo.</span>
+    <span>All numbers in the results section are measured results of the full system. Embedding model: sentence-transformers/all-MiniLM-L6-v2 (Apache-2.0), int8 weights from the Xenova ONNX build, run here in plain JavaScript. Open-source judge: Qwen2.5-Instruct (Apache-2.0) and Phi-3.5-vision (MIT) through WebLLM, or Qwen2.5-VL through Ollama.</span>
   </footer>
 </div>
 
@@ -434,13 +516,13 @@ footer{font-size:12px;color:var(--muted);display:grid;gap:4px}
 
 </script>
 <script>
-const SCEN = [{"id":"clinical","tab":"Clinical","sub":"EHRXQA style · PhD idea","src":"Illustrative, after the MedHyperGraph Fig. 1 example (MIMIC-style de-identified dates)","q":"Was a pleural effusion seen within 2 days after the pneumonia diagnosis?","opts":"","hint":"","img":"Chest X-ray attached. VLM description: opacity in the right lower lung (marked region); blunted right costophrenic angle.","pic":"img/xray.webp","picAlt":"Frontal chest X-ray with a red box over the right lower lung region.","picCap":"X-ray: MedHyperGraph, Fig. 1","subq":["When was pneumonia diagnosed? → admission 2105-03-10","Which studies fall into 2105-03-10 … 03-12?","Does one of them report an effusion?"],"cands":[{"id":"c1","title":"Radiology report · study 2105-03-20","text":"Follow-up after pneumonia. Moderate right pleural effusion with right lower lobe opacity, increased compared with the prior study.","thumb":"xray","facts":[["pleural effusion","moderate, right","2105-03-20"],["effusion","increased vs.","prior study"]],"ok":false,"reason":"Shows an effusion, but 10 days after the diagnosis: outside the 2-day window.","sim":0.849},{"id":"c2","title":"Guideline · parapneumonic effusion","text":"Pleural effusions develop in many patients hospitalised with bacterial pneumonia.","thumb":"book","facts":[["bacterial pneumonia","complication","pleural effusion"]],"ok":false,"reason":"General knowledge, not this patient. This is what a model without retrieval would answer from.","sim":0.728},{"id":"c3","title":"Radiology report · study 2105-03-08","text":"No pleural effusion. Lungs clear.","thumb":"xray-clear","facts":[["pleural effusion","absent","2105-03-08"]],"ok":false,"reason":"Before the diagnosis, so it cannot answer the question.","sim":0.69},{"id":"c5","title":"EHR admission · 2105-03-10","text":"Diagnosis community-acquired pneumonia (ICD-10 J18.9); ceftriaxone started.","thumb":"ehr","facts":[["pneumonia","diagnosed","2105-03-10"],["ceftriaxone","started","2105-03-10"]],"ok":false,"reason":"Anchors the time window (2105-03-10); needed as context, but says nothing about an effusion.","sim":0.463},{"id":"c4","title":"Radiology report · study 2105-03-12","text":"Small right effusion. Mild cardiomegaly.","thumb":"xray","facts":[["pleural effusion","small, right","2105-03-12"],["cardiomegaly","mild","2105-03-12"]],"ok":true,"reason":"Patient-specific finding dated 2 days after the diagnosis: inside the window.","sim":0.435}],"order":["c4","c5","c1","c3","c2"],"base":{"a":"Yes, a moderate right pleural effusion was seen.","cite":"Radiology report · study 2105-03-20","note":"Sounds right, but the cited report is from the wrong date. The answer is not grounded."},"ours":{"a":"Yes. A small right pleural effusion on 2105-03-12, two days after the pneumonia diagnosis on 2105-03-10.","cite":"Report 2105-03-12 + EHR admission 2105-03-10","note":"My first PhD idea: this judge, with question decomposition, inside MedHyperGraph."}},{"id":"industrial","tab":"Industrial","sub":"SulzerDataset style","src":"Illustrative pump manual in the style of SulzerDataset (originals are German)","q":"At which bearing temperature must the pump be shut down?","opts":"","hint":"","img":"Diagram on the manual page: drive-end bearing housing with temperature sensor TE-101 (VLM description).","pic":"svg:pump","picAlt":"Schematic: pump casing, shaft, bearing housing with two rolling bearings and temperature sensor TE-101, motor.","cands":[{"id":"c1","title":"Lubrication of rolling bearings","text":"The bearing temperature of the pump is normally up to 80 °C. Shut down the pump before relubricating the bearings every 4,000 h.","thumb":"grease","facts":[["bearing temperature","normal operation","≤ 80 °C"],["relubrication","requires","pump shut down"],["relubrication","interval","4,000 h"]],"ok":false,"reason":"Uses the same words (bearing temperature, shut down) but gives the normal range and a maintenance step, not the shutdown limit.","sim":0.751},{"id":"c2","title":"Commissioning checklist","text":"Before start-up of the pump, check direction of rotation, fill bearing housing, open suction valve fully.","thumb":"checklist","facts":[["start-up","check","direction of rotation"],["start-up","fill","bearing housing"]],"ok":false,"reason":"Procedure before start-up; no limits.","sim":0.466},{"id":"c4","title":"Troubleshooting · bearing temperature too high","text":"Possible causes: too much grease, misalignment of the coupling, damaged bearing.","thumb":"thermo","facts":[["high bearing temperature","cause","excess grease"],["high bearing temperature","cause","misalignment"]],"ok":false,"reason":"Lists causes, gives no threshold.","sim":0.446},{"id":"c3","title":"Spare parts · bearing 6312-C3","text":"Rolling bearing 6312-C3, part no. 320.01, quantity 2 per pump.","thumb":"bearing","facts":[["bearing 6312-C3","part no.","320.01"]],"ok":false,"reason":"Part number only.","sim":0.403},{"id":"c5","title":"Protection settings · table 7-2","text":"TE-101 — H alarm 90 °C, HH trip 100 °C. VT-201 — H alarm 4.5 mm/s.","thumb":"table","facts":[["TE-101 bearing temperature","alarm","90 °C"],["TE-101 bearing temperature","trip (shutdown)","100 °C"],["VT-201 vibration","alarm","4.5 mm/s"]],"ok":true,"reason":"Links sensor TE-101 from the diagram to the trip (automatic shutdown) at 100 °C: exactly the fact asked for.","sim":0.376}],"order":["c5","c1","c4","c2","c3"],"base":{"a":"Above 80 °C the pump must be shut down.","cite":"Lubrication of rolling bearings","note":"Wrong: 80 °C is the normal operating range. The words match, the fact does not."},"ours":{"a":"Automatic shutdown (HH trip) at 100 °C; an alarm comes first at 90 °C.","cite":"Protection settings · table 7-2","note":"Right answer with evidence a technician can check. The terse table has little word overlap, so similarity ranked it last."}},{"id":"science","tab":"ScienceQA","sub":"Public benchmark style","src":"Illustrative, after thesis Sec. 4.4 (lasagna / time units)","q":"Select the better estimate. How long does it take to bake lasagna in the oven?","opts":"(A) 45 minutes   (B) 45 hours","hint":"","img":null,"fig2":{"src":"img/kitchen.webp","w":900,"h":672,"alt":"Illustration: the lasagna query lands among kitchen-topic documents, while the needed lecture on time units is far away in vector space.","cap":"Thesis illustration of the same failure: the query lands among kitchen topics; the time-units lecture is far away."},"cands":[{"id":"c1","title":"Cooking methods · baking","text":"Lasagna is baked in the oven: layers of pasta, sauce and cheese are baked with dry heat until golden.","thumb":"oven","facts":[["lasagna","baked in","oven"],["layers","pasta · sauce · cheese","baked until golden"]],"ok":false,"reason":"Same topic (lasagna, oven) but states no duration, so it cannot separate 45 minutes from 45 hours.","sim":0.57},{"id":"c2","title":"Units of time","text":"Time is measured in seconds, minutes and hours. 1 hour = 60 minutes. Cooking a meal takes minutes; a school day takes hours.","thumb":"clock","facts":[["1 hour","=","60 minutes"],["cooking a meal","measured in","minutes"],["school day","measured in","hours"]],"ok":true,"reason":"Directly expresses the rule needed: which unit fits an everyday duration such as cooking.","sim":0.465},{"id":"c3","title":"Kitchen safety","text":"Use oven mitts when handling hot dishes. Never leave the oven unattended while baking.","thumb":"mitt","facts":[["oven mitts","protect from","hot dish"],["oven","not unattended","while baking"]],"ok":false,"reason":"Kitchen topic only; no rule about time.","sim":0.243},{"id":"c4","title":"Food chains","text":"A food chain shows how energy moves from producers to consumers.","thumb":"chain","facts":[["energy","producer → consumer","food chain"]],"ok":false,"reason":"Unrelated to the question.","sim":0.116},{"id":"c5","title":"States of matter · melting","text":"When cheese is heated it melts and changes from a solid to a liquid.","thumb":"melt","facts":[["cheese","heated","solid → liquid"]],"ok":false,"reason":"About heating, not about duration.","sim":0.096}],"order":["c2","c1","c3","c5","c4"],"base":{"a":"(A) 45 minutes","cite":"Cooking methods · baking","note":"Correct answer, but from memory: the cited text says nothing about time."},"ours":{"a":"(A) 45 minutes","cite":"Units of time","note":"Same answer, now supported by the evidence that contains the rule."}}];
+const SCEN = [{"id":"clinical","tab":"Clinical","sub":"EHRXQA style · PhD idea","src":"Illustrative, after the MedHyperGraph Fig. 1 example (MIMIC-style de-identified dates)","q":"Was a pleural effusion seen within 2 days after the pneumonia diagnosis?","opts":"","hint":"","img":"Chest X-ray attached. VLM description: opacity in the right lower lung (marked region); blunted right costophrenic angle.","pic":"img/xray.webp","picAlt":"Frontal chest X-ray with a red box over the right lower lung region.","picCap":"X-ray: MedHyperGraph, Fig. 1","subq":["When was pneumonia diagnosed? → admission 2105-03-10","Which studies fall into 2105-03-10 … 03-12?","Does one of them report an effusion?"],"cands":[{"id":"c1","title":"Radiology report · study 2105-03-20","text":"Follow-up after pneumonia. Moderate right pleural effusion with right lower lobe opacity, increased compared with the prior study.","thumb":"xray","facts":[["pleural effusion","moderate, right","2105-03-20"],["effusion","increased vs.","prior study"]],"ok":false,"reason":"Shows an effusion, but 10 days after the diagnosis: outside the 2-day window.","sim":0.849},{"id":"c2","title":"Guideline · parapneumonic effusion","text":"Pleural effusions develop in many patients hospitalised with bacterial pneumonia.","thumb":"book","facts":[["bacterial pneumonia","complication","pleural effusion"]],"ok":false,"reason":"General knowledge, not this patient. This is what a model without retrieval would answer from.","sim":0.728},{"id":"c3","title":"Radiology report · study 2105-03-08","text":"No pleural effusion. Lungs clear.","thumb":"xray-clear","facts":[["pleural effusion","absent","2105-03-08"]],"ok":false,"reason":"Before the diagnosis, so it cannot answer the question.","sim":0.69},{"id":"c5","title":"EHR admission · 2105-03-10","text":"Diagnosis community-acquired pneumonia (ICD-10 J18.9); ceftriaxone started.","thumb":"ehr","facts":[["pneumonia","diagnosed","2105-03-10"],["ceftriaxone","started","2105-03-10"]],"ok":false,"reason":"Anchors the time window (2105-03-10); needed as context, but says nothing about an effusion.","sim":0.463},{"id":"c4","title":"Radiology report · study 2105-03-12","text":"Small right effusion. Mild cardiomegaly.","thumb":"xray","facts":[["pleural effusion","small, right","2105-03-12"],["cardiomegaly","mild","2105-03-12"]],"ok":true,"reason":"Patient-specific finding dated 2 days after the diagnosis: inside the window.","sim":0.435}],"order":["c4","c5","c1","c3","c2"],"base":{"a":"Yes, a moderate right pleural effusion was seen.","cite":"Radiology report · study 2105-03-20","note":"Sounds right, but the cited report is from the wrong date. The answer is not grounded."},"ours":{"a":"Yes. A small right pleural effusion on 2105-03-12, two days after the pneumonia diagnosis on 2105-03-10.","cite":"Report 2105-03-12 + EHR admission 2105-03-10","note":"My first PhD idea: this judge, with question decomposition, inside MedHyperGraph."}},{"id":"industrial","tab":"Industrial","sub":"SulzerDataset style","src":"Illustrative pump manual in the style of SulzerDataset (originals are German)","q":"At which bearing temperature must the pump be shut down?","opts":"","hint":"","img":"Diagram on the manual page: drive-end bearing housing with temperature sensor TE-101 (VLM description).","pic":"svg:pump","picAlt":"Schematic: pump casing, shaft, bearing housing with two rolling bearings and temperature sensor TE-101, motor.","cands":[{"id":"c1","title":"Lubrication of rolling bearings","text":"The bearing temperature of the pump is normally up to 80 °C. Shut down the pump before relubricating the bearings every 4,000 h.","thumb":"grease","facts":[["bearing temperature","normal operation","≤ 80 °C"],["relubrication","requires","pump shut down"],["relubrication","interval","4,000 h"]],"ok":false,"reason":"Uses the same words (bearing temperature, shut down) but gives the normal range and a maintenance step, not the shutdown limit.","sim":0.751},{"id":"c2","title":"Commissioning checklist","text":"Before start-up of the pump, check direction of rotation, fill bearing housing, open suction valve fully.","thumb":"checklist","facts":[["start-up","check","direction of rotation"],["start-up","fill","bearing housing"]],"ok":false,"reason":"Procedure before start-up; no limits.","sim":0.466},{"id":"c4","title":"Troubleshooting · bearing temperature too high","text":"Possible causes: too much grease, misalignment of the coupling, damaged bearing.","thumb":"thermo","facts":[["high bearing temperature","cause","excess grease"],["high bearing temperature","cause","misalignment"]],"ok":false,"reason":"Lists causes, gives no threshold.","sim":0.446},{"id":"c3","title":"Spare parts · bearing 6312-C3","text":"Rolling bearing 6312-C3, part no. 320.01, quantity 2 per pump.","thumb":"bearing","facts":[["bearing 6312-C3","part no.","320.01"]],"ok":false,"reason":"Part number only.","sim":0.403},{"id":"c5","title":"Protection settings · table 7-2","text":"TE-101 — H alarm 90 °C, HH trip 100 °C. VT-201 — H alarm 4.5 mm/s.","thumb":"table","facts":[["TE-101 bearing temperature","alarm","90 °C"],["TE-101 bearing temperature","trip (shutdown)","100 °C"],["VT-201 vibration","alarm","4.5 mm/s"]],"ok":true,"reason":"Links sensor TE-101 from the diagram to the trip (automatic shutdown) at 100 °C: exactly the fact asked for.","sim":0.376}],"order":["c5","c1","c4","c2","c3"],"base":{"a":"Above 80 °C the pump must be shut down.","cite":"Lubrication of rolling bearings","note":"Wrong: 80 °C is the normal operating range. The words match, the fact does not."},"ours":{"a":"Automatic shutdown (HH trip) at 100 °C; an alarm comes first at 90 °C.","cite":"Protection settings · table 7-2","note":"Right answer with evidence a technician can check. The terse table has little word overlap, so similarity ranked it last."}},{"id":"science","tab":"ScienceQA","sub":"Public benchmark style","src":"Illustrative ScienceQA-style question (lasagna / time units)","q":"Select the better estimate. How long does it take to bake lasagna in the oven?","opts":"(A) 45 minutes   (B) 45 hours","hint":"","img":null,"fig2":{"src":"img/kitchen.webp","w":900,"h":672,"alt":"Illustration: the lasagna query lands among kitchen-topic documents, while the needed lecture on time units is far away in vector space.","cap":"Illustration of the same failure: the query lands among kitchen topics; the time-units lecture is far away."},"cands":[{"id":"c1","title":"Cooking methods · baking","text":"Lasagna is baked in the oven: layers of pasta, sauce and cheese are baked with dry heat until golden.","thumb":"oven","facts":[["lasagna","baked in","oven"],["layers","pasta · sauce · cheese","baked until golden"]],"ok":false,"reason":"Same topic (lasagna, oven) but states no duration, so it cannot separate 45 minutes from 45 hours.","sim":0.57},{"id":"c2","title":"Units of time","text":"Time is measured in seconds, minutes and hours. 1 hour = 60 minutes. Cooking a meal takes minutes; a school day takes hours.","thumb":"clock","facts":[["1 hour","=","60 minutes"],["cooking a meal","measured in","minutes"],["school day","measured in","hours"]],"ok":true,"reason":"Directly expresses the rule needed: which unit fits an everyday duration such as cooking.","sim":0.465},{"id":"c3","title":"Kitchen safety","text":"Use oven mitts when handling hot dishes. Never leave the oven unattended while baking.","thumb":"mitt","facts":[["oven mitts","protect from","hot dish"],["oven","not unattended","while baking"]],"ok":false,"reason":"Kitchen topic only; no rule about time.","sim":0.243},{"id":"c4","title":"Food chains","text":"A food chain shows how energy moves from producers to consumers.","thumb":"chain","facts":[["energy","producer → consumer","food chain"]],"ok":false,"reason":"Unrelated to the question.","sim":0.116},{"id":"c5","title":"States of matter · melting","text":"When cheese is heated it melts and changes from a solid to a liquid.","thumb":"melt","facts":[["cheese","heated","solid → liquid"]],"ok":false,"reason":"About heating, not about duration.","sim":0.096}],"order":["c2","c1","c3","c5","c4"],"base":{"a":"(A) 45 minutes","cite":"Cooking methods · baking","note":"Correct answer, but from memory: the cited text says nothing about time."},"ours":{"a":"(A) 45 minutes","cite":"Units of time","note":"Same answer, now supported by the evidence that contains the rule."}}];
 
 const STEPS = [
- {t:"Multimodal query", x:"Question and a text description of the image become one search query (contribution 1: images as text, not CLIP)."},
+ {t:"Multimodal query", x:"Question and a text description of the image become one search query (images as text, not CLIP)."},
  {t:"Vector search · top-5", x:"Vector search ranks by distance in embedding space, not by meaning. The scores below are real cosine similarities from all-MiniLM-L6-v2. The right evidence is in the top-5, but not first."},
- {t:"Hypergraph facts", x:"For the five candidates only, an LLM extracts n-ary facts (hyperedges). One fact links all its parts, e.g. sensor, action and threshold (contribution 3)."},
- {t:"LLM judge reranks", x:"The judge reads the facts, keeps the search rank as a prior and promotes a candidate only on clearly better evidence. One reason per candidate (contribution 4).", judge:true},
+ {t:"Hypergraph facts", x:"For the five candidates only, an LLM extracts n-ary facts (hyperedges). One fact links all its parts, e.g. sensor, action and threshold."},
+ {t:"LLM judge reranks", x:"The judge reads the facts, keeps the search rank as a prior and promotes a candidate only on clearly better evidence. One reason per candidate.", judge:true},
  {t:"Answer with evidence", x:"The top-ranked evidence goes to the multimodal model. Compare the answer from similarity ranking with the answer from the judge."}
 ];
 
@@ -483,7 +565,7 @@ function tabs(){
   });
 }
 function stepper(){
-  $("stepper").innerHTML = STEPS.map((s,i) => `<button class="step ${i<step?'done':''} ${i===step?'on':''} ${s.judge?'judge':''}" data-i="${i}"><span class="n">STEP ${i+1}</span><span class="t">${s.t}</span></button>`).join("");
+  $("stepper").innerHTML = STEPS.map((s,i) => `<button class="step ${i<step?'done':''} ${i===step?'on':''} ${s.judge?'judge':''}" data-i="${i}"><span class="n">${i+1}</span><span class="t">${s.t}</span></button>`).join("");
   $("stepper").querySelectorAll(".step").forEach(b => b.onclick = () => { stopPlay(); go(+b.dataset.i); });
 }
 const factHTML = f => `<span class="fact">${f.map(esc).join('<i>·</i>')}</span>`;

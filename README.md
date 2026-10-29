@@ -1,4 +1,4 @@
-# Evidence Judge: standalone demo
+# Agentic-based Multimodal HyperGraphRAG as Reranker: interactive demo
 
 A static website: no server code and no build step. Everything needed is in this folder.
 
