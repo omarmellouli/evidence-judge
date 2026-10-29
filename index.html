@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>[hidden]{display:none!important}img{max-width:100%}</style></head><body>
+<title>Evidence Judge</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap">
+<style>
+/* Layout: a lab instrument. Header, pipeline figure, example tabs, a 5-step stepper driving one candidate table, a live two-stage panel, then measured results. Deck colours: navy ink, steel blue for retrieval, amber for the judge. */
+:root{
+  --bg:#F4F6F8; --panel:#FFFFFF; --ink:#14213D; --body:#3E4A5C; --muted:#6B7586; --line:#DDE3EA;
+  --blue:#1F5F8B; --blue-soft:#E7EFF6; --amber:#B5651D; --amber-soft:#FBEBD9; --amber-ink:#8A4A12;
+  --good:#2E7D4F; --good-soft:#E3F2E8; --bad:#B03A2E; --bad-soft:#F8E4E1; --tile:#FFFFFF;
+  --display:"IBM Plex Sans Condensed","Arial Narrow",Arial,sans-serif;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F1522; --panel:#172033; --ink:#E9EEF6; --body:#C2CBD8; --muted:#8C97A8; --line:#2A3650;
+  --blue:#6FA8D6; --blue-soft:#1C2E46; --amber:#E39A55; --amber-soft:#3A2814; --amber-ink:#F2B47A;
+  --good:#6CC28F; --good-soft:#163323; --bad:#E58378; --bad-soft:#3A1C1A; --tile:#F2F4F7; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1522; --panel:#172033; --ink:#E9EEF6; --body:#C2CBD8; --muted:#8C97A8; --line:#2A3650;
+  --blue:#6FA8D6; --blue-soft:#1C2E46; --amber:#E39A55; --amber-soft:#3A2814; --amber-ink:#F2B47A;
+  --good:#6CC28F; --good-soft:#163323; --bad:#E58378; --bad-soft:#3A1C1A; --tile:#F2F4F7; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--body);font:15px/1.5 var(--sans);margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:22px}
+h1,h2,h3{color:var(--ink);text-wrap:balance;margin:0}
+h1{font:700 clamp(30px,4.6vw,46px)/1.05 var(--display);letter-spacing:-.01em}
+h2{font:700 22px/1.2 var(--display)}
+h3{font:600 15px/1.3 var(--sans)}
+.eyebrow{font:500 11.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px}
+button,input,select{font:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+header{display:grid;gap:10px}
+header p{margin:0;max-width:72ch}
+.byline{font-size:13.5px;color:var(--muted)}
+.note{font-size:12px;color:var(--muted);margin:0}
+figure{margin:0}
+details.fig summary{cursor:pointer;font-weight:500;color:var(--ink);font-size:14px}
+details.fig[open] summary{margin-bottom:10px}
+.pipe{display:grid;gap:8px;max-width:880px}
+.pipe img{width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff;display:block}
+.pipe figcaption,.vizcap{font-size:12px;color:var(--muted)}
+
+.tabs{display:flex;flex-wrap:wrap;gap:8px}
+.tab{border:1px solid var(--line);background:var(--panel);color:var(--body);border-radius:8px;padding:9px 14px;text-align:left;display:grid;gap:2px;min-width:0}
+.tab b{color:var(--ink);font-weight:600;font-size:14.5px}
+.tab span{font-size:12px;color:var(--muted)}
+.tab[aria-selected="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+
+.stepper{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-bottom:1px solid var(--line)}
+.step{background:none;border:0;padding:14px 12px 12px;text-align:left;display:grid;gap:3px;color:var(--muted);border-bottom:3px solid transparent;min-width:0}
+.step .n{font:500 11px/1 var(--mono);letter-spacing:.08em}
+.step .t{font-weight:600;font-size:13.5px;line-height:1.25}
+.step.done{color:var(--body)}
+.step.on{color:var(--ink);border-bottom-color:var(--ink)}
+.step.judge.on{border-bottom-color:var(--amber)}
+.stage{padding:20px;display:grid;gap:18px}
+.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:7px;padding:8px 14px;font-weight:500}
+.btn.primary{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.btn.amber{background:var(--amber);color:#fff;border-color:var(--amber)}
+.btn.blue{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn.small{padding:4px 10px;font-size:12.5px}
+.btn:disabled{opacity:.45;cursor:default}
+.explain{margin:0;max-width:80ch}
+
+.query{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.9fr);gap:14px}
+.qbox{border-radius:8px;padding:14px 16px;background:var(--blue-soft);display:grid;gap:6px;align-content:start;min-width:0}
+.qbox.img{background:var(--bg);border:1px dashed var(--line)}
+.qtext{color:var(--ink);font-weight:600;font-size:16px}
+.opts{font-family:var(--mono);font-size:13px}
+.qimg{display:flex;gap:12px;align-items:flex-start}
+.qimg img,.qimg svg{flex:none;width:150px;height:auto;border-radius:6px;border:1px solid var(--line);background:#fff;display:block}
+.qimg .d{min-width:0;font-size:13.5px}
+.subq{display:grid;gap:4px;margin:4px 0 0;padding:0;list-style:none;font-size:13px}
+.subq li{padding-left:16px;position:relative}
+.subq li::before{content:"↳";position:absolute;left:0;color:var(--amber)}
+
+.viz{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+.viz figure{display:grid;gap:6px;min-width:0}
+.viz svg{width:100%;height:auto;display:block;background:var(--bg);border-radius:8px}
+.viz img{width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff;display:block}
+
+.status{display:flex;flex-wrap:wrap;gap:10px}
+.pill{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:500}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.pill .k{font:500 11px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;opacity:.85}
+
+.cands{display:grid;gap:8px}
+.row{display:grid;grid-template-columns:40px 64px minmax(0,1fr) 140px;gap:14px;align-items:start;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel);transition:border-color .3s,background .3s}
+.row.top{border-color:var(--ink)}
+.row.top.judged{border-color:var(--amber);background:var(--amber-soft)}
+.rank{font:600 20px/1 var(--mono);color:var(--ink);display:grid;gap:4px;justify-items:start}
+.rank small{font:500 10px/1 var(--mono);color:var(--muted);letter-spacing:.04em}
+.thumb{width:64px;height:64px;border-radius:6px;border:1px solid var(--line);background:var(--tile);overflow:hidden;display:grid;place-items:center}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb svg{width:52px;height:52px;display:block}
+.ctitle{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.ctext{margin:3px 0 0;font-size:13.5px}
+.truth{font:500 10.5px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:3px 6px;border-radius:4px}
+.truth.y{background:var(--good-soft);color:var(--good)}
+.truth.n{background:var(--bg);color:var(--muted)}
+.facts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.fact{font:400 12px/1.3 var(--mono);border:1px solid var(--blue);color:var(--blue);border-radius:4px;padding:3px 7px;background:var(--panel)}
+.fact i{font-style:normal;opacity:.55;padding:0 3px}
+.reason{margin-top:8px;font-size:13px;color:var(--amber-ink);display:flex;gap:6px}
+.reason::before{content:"Judge:";font-weight:600;flex:none}
+.sim{display:grid;gap:5px;justify-items:end}
+.sim .v{font:500 13px/1 var(--mono);color:var(--ink)}
+.sim .bar{width:100%;height:6px;background:var(--bg);border-radius:3px;overflow:hidden}
+.sim .bar span{display:block;height:100%;background:var(--blue)}
+.sim small{font-size:11px;color:var(--muted);text-align:right}
+.move{font:500 11px/1 var(--mono);padding:3px 6px;border-radius:4px}
+.move.up{background:var(--good-soft);color:var(--good)}
+.move.down{background:var(--bg);color:var(--muted)}
+
+.answer{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.ans{border-radius:8px;padding:14px 16px;display:grid;gap:6px;min-width:0}
+.ans.base{background:var(--bad-soft)}
+.ans.ours{background:var(--good-soft)}
+.ans .who{font:500 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase}
+.ans.base .who{color:var(--bad)} .ans.ours .who{color:var(--good)}
+.ans p{margin:0;color:var(--ink)}
+.cite{font-size:12.5px}
+
+/* live */
+.live{padding:20px;display:grid;gap:18px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:500 12px/1 var(--mono);border-radius:999px;padding:6px 10px;background:var(--bg);color:var(--body);border:1px solid var(--line)}
+.chip.ok{background:var(--good-soft);color:var(--good);border-color:transparent}
+.chip.warn{background:var(--amber-soft);color:var(--amber-ink);border-color:transparent}
+label,.lbl{font:500 11.5px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px}
+textarea,input[type=text],input[type=password],select{width:100%;font:13.5px/1.45 var(--sans);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:8px 10px}
+textarea{resize:vertical}
+.item{display:grid;grid-template-columns:64px minmax(0,1fr);gap:10px;align-items:start}
+.item .tools{display:grid;gap:6px;justify-items:center}
+.item .tools .thumb{cursor:pointer;color:var(--muted);font:500 10px/1.2 var(--mono);text-align:center}
+.item .desc{margin-top:6px;font-size:12.5px}
+.item .desc input{font-size:12.5px;padding:5px 8px}
+.items{display:grid;gap:10px}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+.out{display:grid;gap:8px;align-content:start;min-width:0}
+.out .row{grid-template-columns:40px 48px minmax(0,1fr) 110px}
+.out .row .thumb{width:48px;height:48px}
+.out .row .thumb svg{width:40px;height:40px}
+.judgecfg{display:grid;grid-template-columns:160px 160px minmax(0,1fr);gap:8px;align-items:end}
+.thinking{font-family:var(--mono);font-size:13px;color:var(--amber-ink)}
+.prog{height:4px;background:var(--bg);border-radius:2px;overflow:hidden}
+.prog span{display:block;height:100%;width:0;background:var(--blue);transition:width .2s}
+.raw{font:12px/1.4 var(--mono);white-space:pre-wrap;color:var(--muted);max-height:160px;overflow:auto;margin:0}
+
+.results{padding:20px;display:grid;gap:18px}
+.rgrid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:24px}
+.bars{display:grid;gap:10px}
+.brow{display:grid;grid-template-columns:150px minmax(0,1fr) 62px;gap:10px;align-items:center;font-size:13px}
+.track{height:16px;background:var(--bg);border-radius:3px;position:relative;overflow:hidden}
+.track span{position:absolute;inset:0 auto 0 0;border-radius:3px}
+.brow .v{font:500 13px/1 var(--mono);color:var(--ink);text-align:right}
+.axis{display:grid;grid-template-columns:150px minmax(0,1fr) 62px;gap:10px;font:11px/1 var(--mono);color:var(--muted)}
+.axis div:nth-child(2){display:flex;justify-content:space-between}
+.facts2{display:grid;gap:10px}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:baseline;border-top:1px solid var(--line);padding-top:10px}
+.kv b{font:600 18px/1 var(--mono);color:var(--ink);white-space:nowrap}
+.kv span{font-size:13px}
+footer{font-size:12px;color:var(--muted);display:grid;gap:4px}
+
+@media (max-width:760px){
+  .step .t{font-size:11.5px}
+  .query,.answer,.rgrid,.viz,.cols{grid-template-columns:1fr}
+  .qimg{flex-direction:column}
+  .row,.out .row{grid-template-columns:30px 48px minmax(0,1fr)}
+  .row .thumb{width:48px;height:48px}
+  .sim{grid-column:3;justify-items:start;grid-template-columns:auto 90px auto;align-items:center;gap:8px}
+  .brow,.axis{grid-template-columns:100px minmax(0,1fr) 54px}
+  .judgecfg{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Master's thesis · interactive demo</div>
+    <h1>Evidence Judge</h1>
+    <p>Multimodal RAG often gives the right answer from the wrong evidence. This demo walks one question through my pipeline: vector search finds five candidates, hypergraph facts describe each one, and an LLM judge reads those facts and decides which evidence actually answers the question.</p>
+    <div class="byline">Omar Mellouli · <em>Diagnosing and Improving Low Retrieval Precision in Multimodal RAG via Agentic-based Multimodal HypergraphRAG</em></div>
+  </header>
+
+  <details class="fig panel" style="padding:14px 16px" open>
+    <summary>The complete pipeline (thesis Fig. 4.8)</summary>
+    <figure class="pipe">
+      <img src="img/pipeline.webp" width="1346" height="750" alt="Complete pipeline: preparation phase extracts hyperedges once per corpus; query phase runs multimodal vector search for the top-5, looks up their hyperedges and lets an LLM judge rerank them with reasons before answer generation.">
+      <figcaption>Top: preparation, once per corpus (hyperedge extraction into a hypergraph). Bottom: per question, vector search for the top-5, fact lookup, and the LLM judge (step 4) that reranks with reasons.</figcaption>
+    </figure>
+  </details>
+
+  <div class="tabs" role="tablist" id="tabs"></div>
+
+  <section class="panel" aria-label="Pipeline walkthrough">
+    <div class="stepper" id="stepper"></div>
+    <div class="stage">
+      <div class="controls">
+        <button class="btn" id="prev">← Back</button>
+        <button class="btn primary" id="next">Next step →</button>
+        <button class="btn" id="play">Play all</button>
+        <span class="note" id="srcnote"></span>
+      </div>
+      <p class="explain" id="explain"></p>
+      <div class="query" id="query"></div>
+      <div class="viz" id="viz" hidden></div>
+      <div class="status" id="status"></div>
+      <div class="cands" id="cands"></div>
+      <div class="answer" id="answer" hidden></div>
+    </div>
+  </section>
+
+  <section class="panel live" id="live" aria-label="Live demo">
+    <div style="display:grid;gap:8px">
+      <div class="eyebrow">Try it yourself</div>
+      <h2>Your question, your candidates, two real models</h2>
+      <p class="explain">Stage 1 is an independent embedding model, <b style="color:var(--ink)">all-MiniLM-L6-v2</b>, that runs entirely in your browser: no account, no server, nothing leaves this page. Stage 2 is the LLM judge. Add images to the question or to any candidate; a vision model turns them into text first, as in my thesis (images as text, not CLIP).</p>
+      <div class="chips"><span class="chip" id="chipModel">Embedding model: not loaded (23 MB)</span><span class="chip" id="chipJudge">Judge: checking…</span></div>
+    </div>
+
+    <div class="judgecfg" id="judgecfg" hidden>
+      <div><label for="prov">Judge provider</label><select id="prov"><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option></select></div>
+      <div><label for="mdl">Model</label><input type="text" id="mdl" value="gpt-4.1"></div>
+      <div><label for="key">API key (kept in this tab only)</label><input type="password" id="key" placeholder="Paste a key to enable the judge and image descriptions" autocomplete="off"></div>
+    </div>
+
+    <div class="cols">
+      <div style="display:grid;gap:14px;min-width:0">
+        <div>
+          <span class="lbl">Question</span>
+          <div class="item" id="qitem"></div>
+        </div>
+        <div>
+          <span class="lbl">Candidate evidence (the search pool)</span>
+          <div class="items" id="citems"></div>
+        </div>
+        <div class="controls">
+          <button class="btn blue" id="rank">1 · Rank by similarity</button>
+          <button class="btn amber" id="judge">2 · Run the LLM judge</button>
+          <button class="btn" id="stop" hidden>Stop</button>
+          <button class="btn" id="reset">Load current example</button>
+        </div>
+        <div class="prog" id="prog" hidden><span></span></div>
+      </div>
+      <div class="out" id="lout"><p class="note">Press “Rank by similarity” to run the embedding model on the five candidates. The first run downloads the model once (23 MB).</p></div>
+    </div>
+  </section>
+
+  <section class="panel results" aria-label="Results">
+    <div style="display:grid;gap:6px">
+      <div class="eyebrow">Measured results · thesis Ch. 5–6</div>
+      <h2>Precision@1: is the first evidence the right one?</h2>
+    </div>
+    <div class="rgrid">
+      <div class="bars" id="bars"></div>
+      <div class="facts2">
+        <div class="kv"><b>98.6%</b><span>right evidence somewhere in the top-5 after data preparation, but only 78.8% at rank 1. Ranking, not search, is the bottleneck.</span></div>
+        <div class="kv"><b>+5.7 / +7.7 pp</b><span>P@1 from the judge on ScienceQA-212 and SulzerDataset. P@5 unchanged: it reorders, it never loses the right text.</span></div>
+        <div class="kv"><b>11–14 s</b><span>per query with the judge (×2.4–2.8 latency), under 1 ¢ per precision point.</span></div>
+        <div class="kv"><b>+0.28 pp</b><span>on the full ScienceQA-2120 corpus: reasoning works but is not yet efficient at scale. This is where my PhD direction starts.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>The three examples are illustrative, written in the style of the thesis data (EHRXQA/MedHyperGraph, SulzerDataset, ScienceQA); they are not taken from the real corpora. The report thumbnails reuse the one sample X-ray from MedHyperGraph Fig. 1; the other thumbnails are drawn icons. Their similarity scores are real: computed with all-MiniLM-L6-v2, the same model the live panel runs. The thesis itself used OpenAI text-embedding-3-large and GPT-4.1.</span>
+    <span>All numbers in the results section are the measured thesis results. Embedding model: sentence-transformers/all-MiniLM-L6-v2 (Apache-2.0), int8 weights from the Xenova ONNX build, run here in plain JavaScript.</span>
+  </footer>
+</div>
+
+<script id="minilm-src">
+/* all-MiniLM-L6-v2 sentence embeddings in plain JavaScript (no WASM).
+   Weights: Xenova/all-MiniLM-L6-v2 model_quantized.onnx, re-packed (int8 per-column, uint8 embeddings). */
+(function (root) {
+  const H = 384, HEADS = 12, HD = 32, FF = 1536, MAXLEN = 128, EPS = 1e-12;
+
+  function erf(x) { // Abramowitz-Stegun 7.1.26
+    const s = x < 0 ? -1 : 1; x = Math.abs(x);
+    const t = 1 / (1 + 0.3275911 * x);
+    const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+    return s * y;
+  }
+
+  /* ---------- BERT WordPiece tokenizer (uncased) ---------- */
+  function isPunct(ch) {
+    const c = ch.codePointAt(0);
+    if ((c >= 33 && c <= 47) || (c >= 58 && c <= 64) || (c >= 91 && c <= 96) || (c >= 123 && c <= 126)) return true;
+    return /\p{P}/u.test(ch);
+  }
+  function isCJK(c) {
+    return (c >= 0x4E00 && c <= 0x9FFF) || (c >= 0x3400 && c <= 0x4DBF) || (c >= 0x20000 && c <= 0x2A6DF) || (c >= 0x2A700 && c <= 0x2B73F) ||
+      (c >= 0x2B740 && c <= 0x2B81F) || (c >= 0x2B820 && c <= 0x2CEAF) || (c >= 0xF900 && c <= 0xFAFF) || (c >= 0x2F800 && c <= 0x2FA1F);
+  }
+  function basicTokens(text) {
+    let out = "";
+    for (const ch of text) {
+      const c = ch.codePointAt(0);
+      if (c === 0 || c === 0xFFFD || (/\p{Cc}|\p{Cf}/u.test(ch) && !/[\t\n\r]/.test(ch))) continue;
+      if (/\s/.test(ch)) { out += " "; continue; }
+      if (isCJK(c)) { out += " " + ch + " "; continue; }
+      out += ch;
+    }
+    out = out.toLowerCase().normalize("NFD").replace(/\p{Mn}/gu, "");
+    const toks = [];
+    for (const w of out.split(" ")) {
+      if (!w) continue;
+      let cur = "";
+      for (const ch of w) {
+        if (isPunct(ch)) { if (cur) toks.push(cur); toks.push(ch); cur = ""; } else cur += ch;
+      }
+      if (cur) toks.push(cur);
+    }
+    return toks;
+  }
+
+  class MiniLM {
+    constructor(man, emb, lay, fl, vocabTxt) {
+      this.man = man; this.emb = new Uint8Array(emb); this.lay = new Int8Array(lay); this.fl = new Float32Array(fl);
+      const v = vocabTxt.split("\n"); this.vocab = new Map(); v.forEach((t, i) => this.vocab.set(t, i));
+      this.CLS = this.vocab.get("[CLS]"); this.SEP = this.vocab.get("[SEP]"); this.UNK = this.vocab.get("[UNK]");
+    }
+    static async load(base, fetchFn) {
+      const f = fetchFn || ((u) => fetch(u));
+      const get = async (n, kind) => { const r = await f(base + n); if (!r.ok) throw new Error("load " + n + ": " + r.status); return kind === "json" ? r.json() : kind === "text" ? r.text() : r.arrayBuffer(); };
+      const [man, emb, lay, fl, voc] = await Promise.all([get("manifest.json", "json"), get("emb.bin"), get("layers.bin"), get("floats.bin"), get("vocab.txt", "text")]);
+      return new MiniLM(man, emb, lay, fl, voc);
+    }
+    F(name) { const [o, n] = this.man.f[name]; return this.fl.subarray(o, o + n); }
+    tokenize(text) {
+      const ids = [this.CLS];
+      for (const w of basicTokens(text)) {
+        const chars = [...w];
+        if (chars.length > 100) { ids.push(this.UNK); continue; }
+        const sub = []; let start = 0, bad = false;
+        while (start < chars.length) {
+          let end = chars.length, found = -1;
+          while (start < end) {
+            let s = chars.slice(start, end).join(""); if (start > 0) s = "##" + s;
+            const id = this.vocab.get(s); if (id !== undefined) { found = id; break; }
+            end--;
+          }
+          if (found < 0) { bad = true; break; }
+          sub.push(found); start = end;
+        }
+        if (bad) ids.push(this.UNK); else ids.push(...sub);
+        if (ids.length >= MAXLEN - 1) break;
+      }
+      ids.length = Math.min(ids.length, MAXLEN - 1); ids.push(this.SEP);
+      return ids;
+    }
+    ln(x, T, w, b) {
+      for (let t = 0; t < T; t++) {
+        const o = t * H; let m = 0, v = 0;
+        for (let i = 0; i < H; i++) m += x[o + i]; m /= H;
+        for (let i = 0; i < H; i++) { const d = x[o + i] - m; v += d * d; } v /= H;
+        const r = 1 / Math.sqrt(v + EPS);
+        for (let i = 0; i < H; i++) x[o + i] = (x[o + i] - m) * r * w[i] + b[i];
+      }
+    }
+    lin(x, T, L, nm, IN, OUT) {
+      const d = this.man.layers[L][nm], W = this.lay.subarray(d.off, d.off + IN * OUT);
+      const sc = this.F(`${L}_${nm}_scale`), zp = this.F(`${L}_${nm}_zp`), b = this.F(`${L}_${nm}_b`);
+      const y = new Float32Array(T * OUT), acc = new Float32Array(OUT);
+      for (let t = 0; t < T; t++) {
+        acc.fill(0); let sx = 0; const xo = t * IN;
+        for (let i = 0; i < IN; i++) {
+          const xi = x[xo + i]; if (xi === 0) continue; sx += xi;
+          const wo = i * OUT;
+          for (let j = 0; j < OUT; j++) acc[j] += xi * W[wo + j];
+        }
+        const yo = t * OUT;
+        for (let j = 0; j < OUT; j++) y[yo + j] = sc[j] * (acc[j] - zp[j] * sx) + b[j];
+      }
+      return y;
+    }
+    embedIds(ids) {
+      const T = ids.length, x = new Float32Array(T * H), E = this.man.emb;
+      const w = E.word, p = E.position, ty = E.token_type;
+      for (let t = 0; t < T; t++) for (let i = 0; i < H; i++)
+        x[t * H + i] = (this.emb[w.off + ids[t] * H + i] - w.zp) * w.scale + (this.emb[p.off + t * H + i] - p.zp) * p.scale + (this.emb[ty.off + i] - ty.zp) * ty.scale;
+      this.ln(x, T, this.F("emb_ln_w"), this.F("emb_ln_b"));
+      const att = new Float32Array(T), ctx = new Float32Array(T * H), sc = 1 / Math.sqrt(HD);
+      for (let L = 0; L < 6; L++) {
+        const q = this.lin(x, T, L, "q", H, H), k = this.lin(x, T, L, "k", H, H), v = this.lin(x, T, L, "v", H, H);
+        ctx.fill(0);
+        for (let h = 0; h < HEADS; h++) {
+          const ho = h * HD;
+          for (let a = 0; a < T; a++) {
+            let mx = -Infinity;
+            for (let c = 0; c < T; c++) { let s = 0; for (let e = 0; e < HD; e++) s += q[a * H + ho + e] * k[c * H + ho + e]; s *= sc; att[c] = s; if (s > mx) mx = s; }
+            let z = 0; for (let c = 0; c < T; c++) { att[c] = Math.exp(att[c] - mx); z += att[c]; }
+            for (let c = 0; c < T; c++) { const pa = att[c] / z; for (let e = 0; e < HD; e++) ctx[a * H + ho + e] += pa * v[c * H + ho + e]; }
+          }
+        }
+        const o = this.lin(ctx, T, L, "o", H, H);
+        for (let i = 0; i < T * H; i++) x[i] += o[i];
+        this.ln(x, T, this.F(`${L}_ln1_w`), this.F(`${L}_ln1_b`));
+        const hmid = this.lin(x, T, L, "i", H, FF);
+        for (let i = 0; i < hmid.length; i++) { const u = hmid[i]; hmid[i] = 0.5 * u * (1 + erf(u / Math.SQRT2)); }
+        const o2 = this.lin(hmid, T, L, "o2", FF, H);
+        for (let i = 0; i < T * H; i++) x[i] += o2[i];
+        this.ln(x, T, this.F(`${L}_ln2_w`), this.F(`${L}_ln2_b`));
+      }
+      const out = new Float32Array(H);
+      for (let t = 0; t < T; t++) for (let i = 0; i < H; i++) out[i] += x[t * H + i] / T;
+      let n = 0; for (let i = 0; i < H; i++) n += out[i] * out[i]; n = Math.sqrt(n);
+      for (let i = 0; i < H; i++) out[i] /= n;
+      return out;
+    }
+    embed(text) { return this.embedIds(this.tokenize(text)); }
+    static cos(a, b) { let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * b[i]; return s; }
+  }
+  root.MiniLM = MiniLM;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
+const SCEN = [{"id":"clinical","tab":"Clinical","sub":"EHRXQA style · PhD idea","src":"Illustrative, after the MedHyperGraph Fig. 1 example (MIMIC-style de-identified dates)","q":"Was a pleural effusion seen within 2 days after the pneumonia diagnosis?","opts":"","hint":"","img":"Chest X-ray attached. VLM description: opacity in the right lower lung (marked region); blunted right costophrenic angle.","pic":"img/xray.webp","picAlt":"Frontal chest X-ray with a red box over the right lower lung region.","picCap":"X-ray: MedHyperGraph, Fig. 1","subq":["When was pneumonia diagnosed? → admission 2105-03-10","Which studies fall into 2105-03-10 … 03-12?","Does one of them report an effusion?"],"cands":[{"id":"c1","title":"Radiology report · study 2105-03-20","text":"Follow-up after pneumonia. Moderate right pleural effusion with right lower lobe opacity, increased compared with the prior study.","thumb":"xray","facts":[["pleural effusion","moderate, right","2105-03-20"],["effusion","increased vs.","prior study"]],"ok":false,"reason":"Shows an effusion, but 10 days after the diagnosis: outside the 2-day window.","sim":0.849},{"id":"c2","title":"Guideline · parapneumonic effusion","text":"Pleural effusions develop in many patients hospitalised with bacterial pneumonia.","thumb":"book","facts":[["bacterial pneumonia","complication","pleural effusion"]],"ok":false,"reason":"General knowledge, not this patient. This is what a model without retrieval would answer from.","sim":0.728},{"id":"c3","title":"Radiology report · study 2105-03-08","text":"No pleural effusion. Lungs clear.","thumb":"xray-clear","facts":[["pleural effusion","absent","2105-03-08"]],"ok":false,"reason":"Before the diagnosis, so it cannot answer the question.","sim":0.69},{"id":"c5","title":"EHR admission · 2105-03-10","text":"Diagnosis community-acquired pneumonia (ICD-10 J18.9); ceftriaxone started.","thumb":"ehr","facts":[["pneumonia","diagnosed","2105-03-10"],["ceftriaxone","started","2105-03-10"]],"ok":false,"reason":"Anchors the time window (2105-03-10); needed as context, but says nothing about an effusion.","sim":0.463},{"id":"c4","title":"Radiology report · study 2105-03-12","text":"Small right effusion. Mild cardiomegaly.","thumb":"xray","facts":[["pleural effusion","small, right","2105-03-12"],["cardiomegaly","mild","2105-03-12"]],"ok":true,"reason":"Patient-specific finding dated 2 days after the diagnosis: inside the window.","sim":0.435}],"order":["c4","c5","c1","c3","c2"],"base":{"a":"Yes, a moderate right pleural effusion was seen.","cite":"Radiology report · study 2105-03-20","note":"Sounds right, but the cited report is from the wrong date. The answer is not grounded."},"ours":{"a":"Yes. A small right pleural effusion on 2105-03-12, two days after the pneumonia diagnosis on 2105-03-10.","cite":"Report 2105-03-12 + EHR admission 2105-03-10","note":"My first PhD idea: this judge, with question decomposition, inside MedHyperGraph."}},{"id":"industrial","tab":"Industrial","sub":"SulzerDataset style","src":"Illustrative pump manual in the style of SulzerDataset (originals are German)","q":"At which bearing temperature must the pump be shut down?","opts":"","hint":"","img":"Diagram on the manual page: drive-end bearing housing with temperature sensor TE-101 (VLM description).","pic":"svg:pump","picAlt":"Schematic: pump casing, shaft, bearing housing with two rolling bearings and temperature sensor TE-101, motor.","cands":[{"id":"c1","title":"Lubrication of rolling bearings","text":"The bearing temperature of the pump is normally up to 80 °C. Shut down the pump before relubricating the bearings every 4,000 h.","thumb":"grease","facts":[["bearing temperature","normal operation","≤ 80 °C"],["relubrication","requires","pump shut down"],["relubrication","interval","4,000 h"]],"ok":false,"reason":"Uses the same words (bearing temperature, shut down) but gives the normal range and a maintenance step, not the shutdown limit.","sim":0.751},{"id":"c2","title":"Commissioning checklist","text":"Before start-up of the pump, check direction of rotation, fill bearing housing, open suction valve fully.","thumb":"checklist","facts":[["start-up","check","direction of rotation"],["start-up","fill","bearing housing"]],"ok":false,"reason":"Procedure before start-up; no limits.","sim":0.466},{"id":"c4","title":"Troubleshooting · bearing temperature too high","text":"Possible causes: too much grease, misalignment of the coupling, damaged bearing.","thumb":"thermo","facts":[["high bearing temperature","cause","excess grease"],["high bearing temperature","cause","misalignment"]],"ok":false,"reason":"Lists causes, gives no threshold.","sim":0.446},{"id":"c3","title":"Spare parts · bearing 6312-C3","text":"Rolling bearing 6312-C3, part no. 320.01, quantity 2 per pump.","thumb":"bearing","facts":[["bearing 6312-C3","part no.","320.01"]],"ok":false,"reason":"Part number only.","sim":0.403},{"id":"c5","title":"Protection settings · table 7-2","text":"TE-101 — H alarm 90 °C, HH trip 100 °C. VT-201 — H alarm 4.5 mm/s.","thumb":"table","facts":[["TE-101 bearing temperature","alarm","90 °C"],["TE-101 bearing temperature","trip (shutdown)","100 °C"],["VT-201 vibration","alarm","4.5 mm/s"]],"ok":true,"reason":"Links sensor TE-101 from the diagram to the trip (automatic shutdown) at 100 °C: exactly the fact asked for.","sim":0.376}],"order":["c5","c1","c4","c2","c3"],"base":{"a":"Above 80 °C the pump must be shut down.","cite":"Lubrication of rolling bearings","note":"Wrong: 80 °C is the normal operating range. The words match, the fact does not."},"ours":{"a":"Automatic shutdown (HH trip) at 100 °C; an alarm comes first at 90 °C.","cite":"Protection settings · table 7-2","note":"Right answer with evidence a technician can check. The terse table has little word overlap, so similarity ranked it last."}},{"id":"science","tab":"ScienceQA","sub":"Public benchmark style","src":"Illustrative, after thesis Sec. 4.4 (lasagna / time units)","q":"Select the better estimate. How long does it take to bake lasagna in the oven?","opts":"(A) 45 minutes   (B) 45 hours","hint":"","img":null,"fig2":{"src":"img/kitchen.webp","w":900,"h":672,"alt":"Illustration: the lasagna query lands among kitchen-topic documents, while the needed lecture on time units is far away in vector space.","cap":"Thesis illustration of the same failure: the query lands among kitchen topics; the time-units lecture is far away."},"cands":[{"id":"c1","title":"Cooking methods · baking","text":"Lasagna is baked in the oven: layers of pasta, sauce and cheese are baked with dry heat until golden.","thumb":"oven","facts":[["lasagna","baked in","oven"],["layers","pasta · sauce · cheese","baked until golden"]],"ok":false,"reason":"Same topic (lasagna, oven) but states no duration, so it cannot separate 45 minutes from 45 hours.","sim":0.57},{"id":"c2","title":"Units of time","text":"Time is measured in seconds, minutes and hours. 1 hour = 60 minutes. Cooking a meal takes minutes; a school day takes hours.","thumb":"clock","facts":[["1 hour","=","60 minutes"],["cooking a meal","measured in","minutes"],["school day","measured in","hours"]],"ok":true,"reason":"Directly expresses the rule needed: which unit fits an everyday duration such as cooking.","sim":0.465},{"id":"c3","title":"Kitchen safety","text":"Use oven mitts when handling hot dishes. Never leave the oven unattended while baking.","thumb":"mitt","facts":[["oven mitts","protect from","hot dish"],["oven","not unattended","while baking"]],"ok":false,"reason":"Kitchen topic only; no rule about time.","sim":0.243},{"id":"c4","title":"Food chains","text":"A food chain shows how energy moves from producers to consumers.","thumb":"chain","facts":[["energy","producer → consumer","food chain"]],"ok":false,"reason":"Unrelated to the question.","sim":0.116},{"id":"c5","title":"States of matter · melting","text":"When cheese is heated it melts and changes from a solid to a liquid.","thumb":"melt","facts":[["cheese","heated","solid → liquid"]],"ok":false,"reason":"About heating, not about duration.","sim":0.096}],"order":["c2","c1","c3","c5","c4"],"base":{"a":"(A) 45 minutes","cite":"Cooking methods · baking","note":"Correct answer, but from memory: the cited text says nothing about time."},"ours":{"a":"(A) 45 minutes","cite":"Units of time","note":"Same answer, now supported by the evidence that contains the rule."}}];
+
+const STEPS = [
+ {t:"Multimodal query", x:"Question and a text description of the image become one search query (contribution 1: images as text, not CLIP)."},
+ {t:"Vector search · top-5", x:"Vector search ranks by distance in embedding space, not by meaning. The scores below are real cosine similarities from all-MiniLM-L6-v2. The right evidence is in the top-5, but not first."},
+ {t:"Hypergraph facts", x:"For the five candidates only, an LLM extracts n-ary facts (hyperedges). One fact links all its parts, e.g. sensor, action and threshold (contribution 3)."},
+ {t:"LLM judge reranks", x:"The judge reads the facts, keeps the search rank as a prior and promotes a candidate only on clearly better evidence. One reason per candidate (contribution 4).", judge:true},
+ {t:"Answer with evidence", x:"The top-ranked evidence goes to the multimodal model. Compare the answer from similarity ranking with the answer from the judge."}
+];
+
+/* ---------- small pictures for candidates (decorative icons; the X-ray is the MedHyperGraph sample image) ---------- */
+const INK="#14213D", BL="#1F5F8B", AM="#B5651D";
+const ICON = {
+ book:`<svg viewBox="0 0 64 64"><path d="M10 14h18c3 0 4 2 4 4v34c0-2-2-3-4-3H10z" fill="#E7EFF6" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round"/><path d="M54 14H36c-3 0-4 2-4 4v34c0-2 2-3 4-3h18z" fill="#fff" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round"/><path d="M15 22h11M15 28h11M15 34h8M37 22h12M37 28h12M37 34h9" stroke="${BL}" stroke-width="2"/></svg>`,
+ ehr:`<svg viewBox="0 0 64 64"><rect x="10" y="10" width="44" height="44" rx="4" fill="#fff" stroke="${INK}" stroke-width="2.5"/><path d="M10 22h44M10 34h44M10 46h44M28 10v44" stroke="${INK}" stroke-width="1.5"/><rect x="29" y="23" width="25" height="11" fill="#E7EFF6"/><text x="41" y="31" font-size="7" text-anchor="middle" font-family="Arial" font-weight="700" fill="${BL}">J18.9</text><path d="M14 16h10M14 28h10M14 40h10" stroke="${AM}" stroke-width="2"/></svg>`,
+ grease:`<svg viewBox="0 0 64 64"><circle cx="26" cy="38" r="16" fill="#E7EFF6" stroke="${INK}" stroke-width="2.5"/><circle cx="26" cy="38" r="7" fill="#fff" stroke="${INK}" stroke-width="2.5"/><g fill="${INK}"><circle cx="26" cy="25.5" r="2.4"/><circle cx="37" cy="32" r="2.4"/><circle cx="37" cy="44" r="2.4"/><circle cx="26" cy="50.5" r="2.4"/><circle cx="15" cy="44" r="2.4"/><circle cx="15" cy="32" r="2.4"/></g><path d="M48 8c0 0-7 9-7 14a7 7 0 0 0 14 0c0-5-7-14-7-14z" fill="${AM}"/></svg>`,
+ checklist:`<svg viewBox="0 0 64 64"><rect x="12" y="8" width="40" height="50" rx="4" fill="#fff" stroke="${INK}" stroke-width="2.5"/><g stroke="${INK}" stroke-width="2"><rect x="18" y="17" width="7" height="7" fill="#fff"/><rect x="18" y="30" width="7" height="7" fill="#fff"/><rect x="18" y="43" width="7" height="7" fill="#fff"/><path d="M30 20h16M30 33h16M30 46h12"/></g><path d="M19 20l2.5 3 5-6M19 33l2.5 3 5-6" stroke="${BL}" stroke-width="2.5" fill="none"/></svg>`,
+ bearing:`<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="24" fill="#E7EFF6" stroke="${INK}" stroke-width="2.5"/><circle cx="32" cy="32" r="11" fill="#fff" stroke="${INK}" stroke-width="2.5"/><g fill="#fff" stroke="${INK}" stroke-width="2">${[0,45,90,135,180,225,270,315].map(a=>{const r=17.5,x=32+r*Math.cos(a*Math.PI/180),y=32+r*Math.sin(a*Math.PI/180);return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4"/>`}).join("")}</g><text x="32" y="35.5" font-size="8" text-anchor="middle" font-family="Arial" font-weight="700" fill="${INK}">6312</text></svg>`,
+ thermo:`<svg viewBox="0 0 64 64"><rect x="24" y="8" width="12" height="36" rx="6" fill="#fff" stroke="${INK}" stroke-width="2.5"/><circle cx="30" cy="48" r="9" fill="${AM}" stroke="${INK}" stroke-width="2.5"/><rect x="27.5" y="20" width="5" height="26" fill="${AM}"/><path d="M40 16h6M40 24h6M40 32h6" stroke="${INK}" stroke-width="2"/><path d="M52 8l-5 9h10z" fill="#B03A2E"/></svg>`,
+ table:`<svg viewBox="0 0 64 64"><rect x="8" y="12" width="48" height="40" rx="3" fill="#fff" stroke="${INK}" stroke-width="2.5"/><rect x="8" y="12" width="48" height="10" fill="${INK}"/><path d="M8 32h48M8 42h48M26 12v40M42 12v40" stroke="${INK}" stroke-width="1.5"/><text x="17" y="30" font-size="6.5" text-anchor="middle" font-family="Arial" font-weight="700" fill="${INK}">TE</text><text x="34" y="30" font-size="6.5" text-anchor="middle" font-family="Arial" fill="${INK}">90°</text><text x="49" y="30" font-size="6.5" text-anchor="middle" font-family="Arial" font-weight="700" fill="${AM}">100°</text><text x="17" y="40" font-size="6.5" text-anchor="middle" font-family="Arial" font-weight="700" fill="${INK}">VT</text><text x="34" y="40" font-size="6.5" text-anchor="middle" font-family="Arial" fill="${INK}">4.5</text></svg>`,
+ oven:`<svg viewBox="0 0 64 64"><rect x="8" y="10" width="48" height="46" rx="4" fill="#fff" stroke="${INK}" stroke-width="2.5"/><path d="M8 20h48" stroke="${INK}" stroke-width="2"/><circle cx="16" cy="15" r="2" fill="${INK}"/><circle cx="24" cy="15" r="2" fill="${INK}"/><rect x="14" y="26" width="36" height="24" rx="2" fill="#FBEBD9" stroke="${INK}" stroke-width="2"/><rect x="20" y="36" width="24" height="9" rx="1.5" fill="${AM}"/><path d="M20 39h24M20 42h24" stroke="#F5C99B" stroke-width="1.2"/></svg>`,
+ clock:`<svg viewBox="0 0 64 64"><circle cx="32" cy="34" r="22" fill="#fff" stroke="${INK}" stroke-width="2.5"/>${[...Array(12)].map((_,i)=>{const a=i*30*Math.PI/180;return `<path d="M${(32+18*Math.sin(a)).toFixed(1)} ${(34-18*Math.cos(a)).toFixed(1)}L${(32+20.5*Math.sin(a)).toFixed(1)} ${(34-20.5*Math.cos(a)).toFixed(1)}" stroke="${INK}" stroke-width="2"/>`}).join("")}<path d="M32 34V20M32 34l9 5" stroke="${BL}" stroke-width="3" stroke-linecap="round"/><path d="M26 6h12" stroke="${INK}" stroke-width="3" stroke-linecap="round"/></svg>`,
+ mitt:`<svg viewBox="0 0 64 64"><path d="M20 54V26c0-9 6-15 13-15s12 6 12 14v29z" fill="#FBEBD9" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round"/><path d="M20 34c-6-2-10 1-10 5s4 7 10 6" fill="#FBEBD9" stroke="${INK}" stroke-width="2.5"/><rect x="18" y="50" width="29" height="8" rx="2" fill="${AM}"/></svg>`,
+ chain:`<svg viewBox="0 0 64 64"><path d="M8 50c4-12 12-14 12-14s0 10-12 14z" fill="#2E7D4F"/><circle cx="32" cy="34" r="7" fill="#E7EFF6" stroke="${INK}" stroke-width="2.5"/><circle cx="52" cy="18" r="8" fill="#FBEBD9" stroke="${INK}" stroke-width="2.5"/><path d="M19 42l6-4M38 29l6-5" stroke="${INK}" stroke-width="2.5"/><path d="M25 38l-2 4h4zM44 24l-1 4 4-1z" fill="${INK}"/></svg>`,
+ melt:`<svg viewBox="0 0 64 64"><path d="M8 22l40-10 8 10z" fill="#F5C99B" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round"/><path d="M8 22h48v12c0 0-2 3-4 0v-2c0 0-2 10-5 0v-1c-2 0-3 14-6 0-1 4-4 4-5 0 0 0-1 6-4 1-2 3-4 2-4-1-3 2-5 1-6-2-3 3-6 1-6-2z" fill="#F5C99B" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round"/><circle cx="22" cy="28" r="2.5" fill="#fff"/><circle cx="38" cy="27" r="2" fill="#fff"/></svg>`
+};
+function thumbHTML(t, alt){
+  if (t === "xray") return `<div class="thumb"><img src="img/xray.webp" alt="${esc(alt)}"></div>`;
+  if (t === "xray-clear") return `<div class="thumb"><img src="img/xray_top.webp" alt="${esc(alt)}"></div>`;
+  return `<div class="thumb" aria-hidden="true">${ICON[t] || ""}</div>`;
+}
+
+let S = SCEN[0], step = 0, playing = null;
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function tabs(){
+  $("tabs").innerHTML = SCEN.map(s => `<button class="tab" role="tab" aria-selected="${s===S}" data-id="${s.id}"><b>${s.tab}</b><span>${s.sub}</span></button>`).join("");
+  $("tabs").querySelectorAll(".tab").forEach(b => b.onclick = () => { stopPlay(); S = SCEN.find(x => x.id === b.dataset.id); step = 0; tabs(); render(false); loadExample(); });
+}
+function stepper(){
+  $("stepper").innerHTML = STEPS.map((s,i) => `<button class="step ${i<step?'done':''} ${i===step?'on':''} ${s.judge?'judge':''}" data-i="${i}"><span class="n">STEP ${i+1}</span><span class="t">${s.t}</span></button>`).join("");
+  $("stepper").querySelectorAll(".step").forEach(b => b.onclick = () => { stopPlay(); go(+b.dataset.i); });
+}
+const factHTML = f => `<span class="fact">${f.map(esc).join('<i>·</i>')}</span>`;
+
+function rowHTML(c, rank, simRank){
+  const judged = step >= 3, showFacts = step >= 2, showTruth = step >= 1;
+  const mv = judged ? simRank - rank : 0;
+  return `<div class="row ${rank===1?'top':''} ${rank===1&&judged?'judged':''}" data-id="${c.id}">
+    <div class="rank">${rank}<small>${judged ? 'judge' : 'search'}</small></div>
+    ${thumbHTML(c.thumb, c.title)}
+    <div style="min-width:0">
+      <div class="ctitle"><h3>${esc(c.title)}</h3>
+        ${showTruth ? `<span class="truth ${c.ok?'y':'n'}">${c.ok?'right evidence':'not the evidence'}</span>`:''}
+        ${judged && mv>0 ? `<span class="move up">▲ ${mv}</span>` : judged && mv<0 ? `<span class="move down">▼ ${-mv}</span>`:''}</div>
+      <p class="ctext">${esc(c.text)}</p>
+      ${showFacts ? `<div class="facts">${c.facts.map(factHTML).join("")}</div>`:''}
+      ${judged ? `<div class="reason">${esc(c.reason)}</div>`:''}
+    </div>
+    <div class="sim"><span class="v">${c.sim.toFixed(3)}</span><div class="bar"><span style="width:${Math.max(4,Math.round(c.sim*100))}%"></span></div><small>cosine similarity</small></div>
+  </div>`;
+}
+function mapSVG(sc){
+  const W=420,H=320,cx=W/2,cy=H/2, ang=[-150,-35,60,150,110], R=r=>30+(1-r)*(Math.min(W,H)/2-40)/0.75;
+  const pts = sc.cands.map((c,i)=>{ const r=R(c.sim), a=ang[i]*Math.PI/180; return {c,i,x:cx+r*Math.cos(a)*1.25,y:cy+r*Math.sin(a)}; });
+  const rings=[0.8,0.6,0.4].map(v=>{const r=R(v); return `<ellipse cx="${cx}" cy="${cy}" rx="${r*1.25}" ry="${r}" fill="none" stroke="var(--line)" stroke-dasharray="3 4"/><text x="${cx+r*1.25+3}" y="${cy-3}" font-size="9" fill="var(--muted)" font-family="var(--mono)">${v.toFixed(1)}</text>`;}).join("");
+  const dots=pts.map(p=>`<line x1="${cx}" y1="${cy}" x2="${p.x}" y2="${p.y}" stroke="var(--line)"/>
+    ${p.c.ok?`<circle cx="${p.x}" cy="${p.y}" r="13" fill="none" stroke="var(--good)" stroke-width="2.5"/>`:''}
+    <circle cx="${p.x}" cy="${p.y}" r="9" fill="${p.i===0?'var(--bad)':'var(--blue)'}"/>
+    <text x="${p.x}" y="${p.y+3.5}" text-anchor="middle" font-size="10" font-weight="600" fill="#fff" font-family="var(--mono)">${p.i+1}</text>
+    <text x="${Math.max(70,Math.min(W-70,p.x))}" y="${Math.min(H-6,Math.max(12,p.y+(p.y>cy?28:-18)))}" text-anchor="middle" font-size="10.5" fill="var(--ink)" font-family="var(--sans)">${esc(p.c.title.length>30?p.c.title.slice(0,29)+'…':p.c.title)}</text>`).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Embedding map of the query and its five candidates">${rings}${dots}
+    <rect x="${cx-24}" y="${cy-11}" width="48" height="22" rx="11" fill="var(--ink)"/><text x="${cx}" y="${cy+4}" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--panel)" font-family="var(--mono)">query</text></svg>`;
+}
+function pumpSVG(alt){
+  return `<svg viewBox="0 0 300 200" role="img" aria-label="${esc(alt)}" style="width:190px">
+    <rect width="300" height="200" fill="#fff"/>
+    <g fill="none" stroke="#14213D" stroke-width="2">
+      <circle cx="62" cy="100" r="46"/><circle cx="62" cy="100" r="14"/>
+      <path d="M62 54 h40 v-26 h-28"/>
+      <rect x="120" y="70" width="80" height="60" rx="4" fill="#EEF3F7"/>
+      <line x1="76" y1="100" x2="270" y2="100" stroke-width="3"/>
+      <rect x="132" y="84" width="16" height="32"/><line x1="132" y1="84" x2="148" y2="116"/><line x1="148" y1="84" x2="132" y2="116"/>
+      <rect x="172" y="84" width="16" height="32"/><line x1="172" y1="84" x2="188" y2="116"/><line x1="188" y1="84" x2="172" y2="116"/>
+      <rect x="230" y="78" width="60" height="44" rx="4" fill="#F6F8FA"/>
+    </g>
+    <text x="76" y="22" font-size="10" fill="#14213D" font-family="Arial">discharge</text>
+    <text x="246" y="104" font-size="10" font-family="Arial" fill="#14213D">motor</text>
+    <text x="36" y="160" font-size="10" font-family="Arial" fill="#14213D">pump casing</text>
+    <text x="126" y="146" font-size="10" font-family="Arial" fill="#14213D">bearing housing</text>
+    <line x1="180" y1="70" x2="196" y2="38" stroke="#B5651D" stroke-width="2"/>
+    <circle cx="180" cy="70" r="4" fill="#B5651D"/>
+    <rect x="186" y="20" width="62" height="20" rx="10" fill="#B5651D"/>
+    <text x="217" y="34" text-anchor="middle" font-size="10.5" font-weight="700" font-family="Arial" fill="#fff">TE-101</text>
+  </svg>`;
+}
+
+function render(animate){
+  stepper();
+  $("prev").disabled = step === 0; $("next").disabled = step === STEPS.length-1;
+  $("explain").textContent = STEPS[step].x;
+  $("srcnote").textContent = S.src;
+  const picHTML = !S.pic ? "" : S.pic === "svg:pump" ? pumpSVG(S.picAlt) : `<figure style="display:grid;gap:4px;flex:none"><img src="${S.pic}" width="175" height="190" alt="${esc(S.picAlt)}">${S.picCap?`<figcaption class="note">${esc(S.picCap)}</figcaption>`:''}</figure>`;
+  let q = `<div class="qbox"><span class="eyebrow">Question</span><div class="qtext">${esc(S.q)}</div>${S.opts?`<div class="opts">${esc(S.opts)}</div>`:''}</div>`;
+  let side = S.img ? `<div class="qbox img"><span class="eyebrow">Image → text</span><div class="qimg">${picHTML}<div class="d">${esc(S.img)}</div></div>`
+                   : `<div class="qbox img"><span class="eyebrow">Image</span><div style="font-size:13.5px">No image for this question; the query is the question text.</div>`;
+  if (S.subq && step >= 3) side += `<span class="eyebrow" style="margin-top:6px;color:var(--amber-ink)">Judge decomposes the question</span><ul class="subq">${S.subq.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`;
+  $("query").innerHTML = q + side + `</div>`;
+
+  const viz = $("viz"); viz.hidden = step !== 1;
+  if (step === 1) {
+    const okI = S.cands.findIndex(c=>c.ok);
+    viz.innerHTML = `<figure>${mapSVG(S)}<figcaption class="vizcap">Embedding map: distance from the query grows as cosine similarity falls. Red = similarity rank 1. Green ring = the evidence that actually answers the question.</figcaption></figure>`
+    + (S.fig2 ? `<figure><img src="${S.fig2.src}" width="${S.fig2.w}" height="${S.fig2.h}" alt="${esc(S.fig2.alt)}"><figcaption class="vizcap">${esc(S.fig2.cap)}</figcaption></figure>`
+              : `<figure style="align-self:center"><p class="explain" style="font-size:14px">Rank 1 goes to <b style="color:var(--ink)">${esc(S.cands[0].title)}</b>: it shares the most words with the question. The right evidence, <b style="color:var(--good)">${esc(S.cands[okI].title)}</b>, is in the top-5 but only at rank ${okI+1}. Search found it; ranking did not put it first.</p></figure>`);
+  }
+  const simOrder = S.cands.map(c => c.id), ids = step >= 3 ? S.order : simOrder, box = $("cands"), before = {};
+  if (animate) box.querySelectorAll(".row").forEach(r => before[r.dataset.id] = r.getBoundingClientRect().top);
+  box.hidden = step === 0;
+  box.innerHTML = ids.map((id,i) => rowHTML(S.cands.find(c=>c.id===id), i+1, simOrder.indexOf(id)+1)).join("");
+  if (animate && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    box.querySelectorAll(".row").forEach(r => {
+      const b = before[r.dataset.id]; if (b === undefined) return;
+      const d = b - r.getBoundingClientRect().top; if (!d) return;
+      r.style.transition = "none"; r.style.transform = `translateY(${d}px)`;
+      requestAnimationFrame(() => requestAnimationFrame(() => { r.style.transition = "transform .7s cubic-bezier(.2,.7,.2,1)"; r.style.transform = ""; }));
+    });
+  }
+  const simTop = S.cands[0], jTop = S.cands.find(c => c.id === S.order[0]);
+  let st = "";
+  if (step >= 1) st += `<span class="pill ${simTop.ok?'good':'bad'}"><span class="k">Similarity top-1</span>${esc(simTop.title)} ${simTop.ok?'✓':'✗ wrong evidence'}</span>`;
+  if (step >= 3) st += `<span class="pill ${jTop.ok?'good':'bad'}"><span class="k">Judge top-1</span>${esc(jTop.title)} ${jTop.ok?'✓ right evidence':'✗'}</span>`;
+  $("status").innerHTML = st;
+  const a = $("answer"); a.hidden = step < 4;
+  if (step >= 4) a.innerHTML = `
+    <div class="ans base"><span class="who">Answer from similarity top-1</span><p>${esc(S.base.a)}</p><span class="cite">Cites: ${esc(S.base.cite)}</span><span class="note">${esc(S.base.note)}</span></div>
+    <div class="ans ours"><span class="who">Answer from judge top-1</span><p>${esc(S.ours.a)}</p><span class="cite">Cites: ${esc(S.ours.cite)}</span><span class="note">${esc(S.ours.note)}</span></div>`;
+}
+function go(i){ const was = step; step = Math.max(0, Math.min(STEPS.length-1, i)); render((was === 2 && step === 3) || (was === 3 && step === 2)); }
+function stopPlay(){ if (playing) { clearInterval(playing); playing = null; $("play").textContent = "Play all"; } }
+$("prev").onclick = () => { stopPlay(); go(step-1); };
+$("next").onclick = () => { stopPlay(); go(step+1); };
+$("play").onclick = () => {
+  if (playing) return stopPlay();
+  step = 0; render(false); $("play").textContent = "Pause";
+  playing = setInterval(() => { if (step >= STEPS.length-1) return stopPlay(); go(step+1); }, 2600);
+};
+document.addEventListener("keydown", e => {
+  if (e.target.closest("textarea,input,select")) return;
+  if (e.key === "ArrowRight") { stopPlay(); go(step+1); }
+  if (e.key === "ArrowLeft") { stopPlay(); go(step-1); }
+});
+
+const BARS = [["Original benchmark","ScienceQA",32.78,"var(--bad)"],["Prepared baseline","ScienceQA-212",78.77,"var(--blue)"],["+ hypergraph & judge","ScienceQA-212",84.43,"var(--amber)"],["Prepared baseline","SulzerDataset",82.21,"var(--blue)"],["+ hypergraph & judge","SulzerDataset",89.90,"var(--amber)"]];
+$("bars").innerHTML = BARS.map(([l,d,v,c]) => `<div class="brow"><span><b style="color:var(--ink);font-weight:500">${l}</b><br><span class="note">${d}</span></span><div class="track"><span style="width:${v}%;background:${c}"></span></div><span class="v">${v.toFixed(2)}%</span></div>`).join("")
+  + `<div class="axis"><div></div><div><span>0</span><span>25</span><span>50</span><span>75</span><span>100%</span></div><div></div></div>`;
+
+/* =================== LIVE PANEL =================== */
+const N = 5;
+const live = { q:{text:"",desc:"",blob:null,url:null,thumb:null}, c:[...Array(N)].map(()=>({text:"",desc:"",blob:null,url:null,thumb:null})), sims:null };
+let embedder = null, ctl = null, judgeKind = null, sample = null;
+
+function itemHTML(id, label, it, rows){
+  const pic = it.url ? `<img src="${it.url}" alt="Attached image">` : it.thumb ? (ICON[it.thumb]||"").replace("<svg","<svg aria-hidden=\"true\"") : "＋<br>image";
+  return `<div class="tools"><div class="thumb" role="button" tabindex="0" title="Add or replace an image" data-pick="${id}">${pic}</div>${it.url?`<button class="btn small" data-clear="${id}">Remove</button>`:''}</div>
+    <div style="min-width:0"><textarea id="t_${id}" rows="${rows}" aria-label="${label}">${esc(it.text)}</textarea>
+    <div class="desc"><input type="text" id="d_${id}" value="${esc(it.desc)}" placeholder="Image description (filled by the vision model, or type it)" aria-label="${label} image description"></div></div>`;
+}
+function drawItems(){
+  $("qitem").innerHTML = itemHTML("q","Question",live.q,2);
+  $("citems").innerHTML = live.c.map((it,i)=>`<div class="item">${itemHTML("c"+i,"Candidate "+(i+1),it,3)}</div>`).join("");
+  document.querySelectorAll("[data-pick]").forEach(el => { const open = () => pickImage(el.dataset.pick); el.onclick = open; el.onkeydown = e => { if (e.key==="Enter"||e.key===" ") { e.preventDefault(); open(); } }; });
+  document.querySelectorAll("[data-clear]").forEach(el => el.onclick = () => { const it = getItem(el.dataset.clear); syncInputs(); if (it.url) URL.revokeObjectURL(it.url); it.blob = null; it.url = null; it.desc = ""; drawItems(); });
+}
+const getItem = id => id === "q" ? live.q : live.c[+id.slice(1)];
+function syncInputs(){
+  live.q.text = $("t_q").value; live.q.desc = $("d_q").value;
+  live.c.forEach((it,i)=>{ it.text = $("t_c"+i).value; it.desc = $("d_c"+i).value; });
+}
+function pickImage(id){
+  const inp = document.createElement("input"); inp.type = "file"; inp.accept = "image/png,image/jpeg,image/webp,image/gif";
+  inp.onchange = async () => {
+    const f = inp.files && inp.files[0]; if (!f) return;
+    syncInputs(); const it = getItem(id);
+    if (it.url) URL.revokeObjectURL(it.url);
+    it.blob = f; it.url = URL.createObjectURL(f); it.desc = "";
+    drawItems(); await describe(id);
+  };
+  inp.click();
+}
+
+async function loadExample(){
+  live.q = {text: S.q + (S.opts ? " " + S.opts : ""), desc: S.img ? S.img.replace(/^.*VLM description:\s*/,"").replace(/\s*\(VLM description\)\.?$/,"") : "", blob:null, url:null, thumb:null};
+  live.c = S.cands.map(c => ({text: c.title + ". " + c.text, desc:"", blob:null, url:null, thumb: c.thumb.startsWith("xray") ? null : c.thumb}));
+  live.sims = null; drawItems();
+  if (S.pic && S.pic.endsWith(".webp")) {
+    try { const r = await fetch(S.pic); const b = await r.blob(); live.q.blob = b; live.q.url = URL.createObjectURL(b); drawItems(); } catch (e) {}
+  }
+  $("lout").innerHTML = `<p class="note">Example loaded. Press “Rank by similarity” to compute the scores in your browser; they should match the walkthrough above.</p>`;
+}
+
+/* ---------- Stage 1: in-browser embedding model ---------- */
+const MODEL_FILES = ["manifest.json","emb.wasm","layers.wasm","floats.wasm","vocab.txt"];
+async function fetchWithProgress(url, onBytes){
+  const r = await fetch(url); if (!r.ok) throw new Error(url + " " + r.status);
+  if (!r.body || !r.body.getReader) { const b = await r.arrayBuffer(); onBytes(b.byteLength); return b; }
+  const rd = r.body.getReader(), parts = []; let n = 0;
+  for (;;) { const {done, value} = await rd.read(); if (done) break; parts.push(value); n += value.length; onBytes(value.length); }
+  const out = new Uint8Array(n); let o = 0; for (const p of parts) { out.set(p, o); o += p.length; } return out.buffer;
+}
+async function getEmbedder(){
+  if (embedder) return embedder;
+  const chip = $("chipModel"), prog = $("prog"), bar = prog.firstElementChild, TOTAL = 23060166;
+  prog.hidden = false; let got = 0;
+  chip.textContent = "Embedding model: downloading 0%"; chip.className = "chip warn";
+  const bufs = {};
+  await Promise.all(MODEL_FILES.map(async f => { bufs[f] = await fetchWithProgress("model/" + f, n => { got += n; const p = Math.min(100, Math.round(got/TOTAL*100)); bar.style.width = p + "%"; chip.textContent = `Embedding model: downloading ${p}%`; }); }));
+  const dec = new TextDecoder();
+  const man = JSON.parse(dec.decode(bufs["manifest.json"])), voc = dec.decode(bufs["vocab.txt"]);
+  // Prefer a worker so the page stays responsive; fall back to the main thread.
+  try {
+    const src = document.getElementById("minilm-src").textContent + `
+      let M=null; onmessage=e=>{const d=e.data; if(d.init){M=new MiniLM(d.man,d.emb,d.lay,d.fl,d.voc); postMessage({ready:true}); return;}
+        try{ const v=M.embed(d.text); postMessage({id:d.id,v},[v.buffer]); }catch(err){ postMessage({id:d.id,error:String(err)}); } };`;
+    const w = new Worker(URL.createObjectURL(new Blob([src], {type:"text/javascript"})));
+    await new Promise((res, rej) => { const t = setTimeout(() => rej(new Error("worker timeout")), 15000); w.onmessage = e => { if (e.data.ready) { clearTimeout(t); res(); } }; w.onerror = e => { clearTimeout(t); rej(e); };
+      w.postMessage({init:true, man, emb:bufs["emb.wasm"], lay:bufs["layers.wasm"], fl:bufs["floats.wasm"], voc}, [bufs["emb.wasm"], bufs["layers.wasm"], bufs["floats.wasm"]]); });
+    let seq = 0; const pending = new Map();
+    w.onmessage = e => { const p = pending.get(e.data.id); if (!p) return; pending.delete(e.data.id); e.data.error ? p.rej(new Error(e.data.error)) : p.res(e.data.v); };
+    embedder = { embed: text => new Promise((res, rej) => { const id = ++seq; pending.set(id, {res, rej}); w.postMessage({id, text}); }) };
+  } catch (e) {
+    const m = new MiniLM(man, bufs["emb.wasm"], bufs["layers.wasm"], bufs["floats.wasm"], voc);
+    embedder = { embed: async text => { await new Promise(r => setTimeout(r, 0)); return m.embed(text); } };
+  }
+  chip.textContent = "Embedding model: all-MiniLM-L6-v2 · ready, in your browser"; chip.className = "chip ok";
+  prog.hidden = true;
+  return embedder;
+}
+const fullText = it => [it.text.trim(), it.desc.trim() ? "Image: " + it.desc.trim() : ""].filter(Boolean).join(" ");
+
+async function runRank(){
+  syncInputs();
+  const idx = live.c.map((it,i)=>i).filter(i => fullText(live.c[i]));
+  if (!fullText(live.q) || idx.length < 2) { $("lout").innerHTML = `<p class="note">Enter a question and at least two candidates.</p>`; return null; }
+  $("rank").disabled = true;
+  try {
+    const E = await getEmbedder();
+    $("lout").innerHTML = `<div class="thinking" id="rk">Embedding the question…</div>`;
+    const t0 = performance.now();
+    const qv = await E.embed(fullText(live.q));
+    const sims = [];
+    for (const i of idx) { $("rk").textContent = `Embedding candidate ${sims.length+1} of ${idx.length}…`; const v = await E.embed(fullText(live.c[i])); let s = 0; for (let k = 0; k < v.length; k++) s += qv[k]*v[k]; sims.push({i, sim:s}); }
+    sims.sort((a,b) => b.sim - a.sim);
+    live.sims = sims;
+    const ms = Math.round(performance.now() - t0);
+    $("lout").innerHTML = `<div class="eyebrow">Stage 1 · similarity ranking · ${ms} ms in your browser</div>` + sims.map((s,r) => liveRow(s.i, r+1, s.sim)).join("") +
+      `<p class="note">This is what a plain vector search would hand to the answer model. Now run the judge to rerank by facts.</p>`;
+    return sims;
+  } catch (e) {
+    $("lout").innerHTML = `<p class="note">The embedding model could not load here (${esc(e.message||e)}).</p>`; return null;
+  } finally { $("rank").disabled = false; }
+}
+function liveThumb(it){ return it.url ? `<div class="thumb"><img src="${it.url}" alt=""></div>` : it.thumb ? `<div class="thumb" aria-hidden="true">${ICON[it.thumb]}</div>` : `<div class="thumb" aria-hidden="true" style="border-style:dashed;background:transparent"></div>`; }
+function liveRow(i, rank, sim, extra){
+  const it = live.c[i];
+  return `<div class="row ${rank===1?'top':''} ${extra&&rank===1?'judged':''}"><div class="rank">${rank}<small>${extra?'judge':'search'}</small></div>${liveThumb(it)}
+    <div style="min-width:0"><div class="ctitle"><span style="font-size:13.5px;color:var(--ink)">${esc(it.text)}</span>${extra?.move||''}</div>
+    ${it.desc?`<p class="note" style="margin-top:4px">Image: ${esc(it.desc)}</p>`:''}${extra?.facts||''}${extra?.reason||''}</div>
+    <div class="sim"><span class="v">${sim.toFixed(3)}</span><div class="bar"><span style="width:${Math.max(4,Math.round(sim*100))}%"></span></div><small>cosine</small></div></div>`;
+}
+
+/* ---------- LLM access: Claude inside claude.ai, or the visitor's own key elsewhere ---------- */
+async function blobToDataURL(b){ return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(b); }); }
+const LLM = {
+  available(){ if (judgeKind === "claude") return true; if (judgeKind === "byok") return !!$("key").value.trim(); return false; },
+  async ask(prompt, {images=[], json=false, signal}={}){
+    if (judgeKind === "claude") {
+      const opt = {modelTier:"quick", cache:false, signal}; if (images.length) opt.images = images;
+      return json ? sample.json(prompt, opt) : (await sample(prompt, opt)).text;
+    }
+    const prov = $("prov").value, key = $("key").value.trim(), model = $("mdl").value.trim();
+    if (prov === "openai") {
+      const content = [{type:"text", text: prompt}]; for (const b of images) content.push({type:"image_url", image_url:{url: await blobToDataURL(b)}});
+      const r = await fetch("https://api.openai.com/v1/chat/completions", {method:"POST", signal, headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
+        body: JSON.stringify({model, messages:[{role:"user", content}], temperature:0, ...(json?{response_format:{type:"json_object"}}:{})})});
+      const d = await r.json(); if (!r.ok) throw new Error(d.error?.message || r.status);
+      const t = d.choices[0].message.content; return json ? parseJSON(t) : t;
+    } else {
+      const content = []; for (const b of images) { const u = await blobToDataURL(b); content.push({type:"image", source:{type:"base64", media_type:u.slice(5,u.indexOf(";")), data:u.slice(u.indexOf(",")+1)}}); }
+      content.push({type:"text", text: prompt + (json ? "\n\nReply with only the JSON." : "")});
+      const r = await fetch("https://api.anthropic.com/v1/messages", {method:"POST", signal, headers:{"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body: JSON.stringify({model, max_tokens:1500, messages:[{role:"user", content}]})});
+      const d = await r.json(); if (!r.ok) throw new Error(d.error?.message || r.status);
+      const t = d.content.map(c => c.text || "").join(""); return json ? parseJSON(t) : t;
+    }
+  }
+};
+function parseJSON(t){ try { return JSON.parse(t); } catch (e) { const a = t.indexOf("{"), b = t.lastIndexOf("}"); return JSON.parse(t.slice(a, b+1)); } }
+
+async function describe(id){
+  const it = getItem(id), inp = $("d_"+id);
+  if (!LLM.available()) { inp.placeholder = "No vision model here: type what the image shows"; inp.focus(); return; }
+  inp.value = ""; inp.placeholder = "Describing the image…";
+  try {
+    const t = await LLM.ask("Describe this image for a retrieval system in one or two factual sentences: what it shows, any visible text, labels, values, findings or regions. No preamble.", {images:[it.blob]});
+    it.desc = t.trim().replace(/\s+/g," "); inp.value = it.desc; inp.placeholder = "Image description";
+  } catch (e) { inp.placeholder = "Description failed: type what the image shows"; }
+}
+
+async function runJudge(){
+  syncInputs();
+  let sims = live.sims;
+  if (!sims) sims = await runRank(); if (!sims) return;
+  if (!LLM.available()) { $("lout").insertAdjacentHTML("beforeend", `<p class="note">${judgeKind==="byok" ? "Paste an API key above to run the judge." : "The judge needs Claude. Open this page signed in to Claude, or use the standalone version with your own key."}</p>`); return; }
+  const cs = sims.map(s => live.c[s.i]);
+  const prompt = `You are the evidence judge in a retrieval-augmented question-answering system.
+Question: ${fullText(live.q)}
+
+Candidates, in the order vector search ranked them (rank 1 = most similar):
+${cs.map((c,i)=>`[${i+1}] ${fullText(c)}`).join("\n")}
+
+Do this:
+1. For each candidate, extract 1-3 n-ary facts (hyperedges) as short arrays of 2-4 parts, e.g. ["bearing temperature","trip","100 °C"].
+2. Rerank the candidates. Prefer the candidate whose facts directly express the fact or rule needed to answer the question, not one that only matches the topic or shares words. Treat the search rank as a prior: promote a lower candidate only when its evidence is clearly better. Respect dates and time windows if the question has them.
+3. Give one short reason (max 20 words) per candidate.
+4. Answer the question in one sentence using only the top-ranked evidence (and supporting candidates if needed), or say the evidence is insufficient.
+
+Reply with only JSON of this shape:
+{"ranking":[3,1,2],"facts":{"1":[["a","b","c"]]},"reasons":{"1":"..."},"answer":"...","cited":[3]}`;
+  ctl = new AbortController(); $("judge").disabled = true; $("stop").hidden = false;
+  const stage1 = $("lout").innerHTML;
+  $("lout").innerHTML = `<div class="thinking">The judge is reading the facts…</div>`;
+  try {
+    const r = await LLM.ask(prompt, {json:true, signal: ctl.signal});
+    const rk = (Array.isArray(r.ranking) ? r.ranking : []).map(Number).filter(n => n>=1 && n<=cs.length).filter((n,i,a)=>a.indexOf(n)===i);
+    cs.forEach((_,i) => { if (!rk.includes(i+1)) rk.push(i+1); });
+    const rows = rk.map((n,pos) => {
+      const facts = (r.facts?.[n] || r.facts?.[String(n)] || []).filter(Array.isArray);
+      const mv = n - (pos+1);
+      return liveRow(sims[n-1].i, pos+1, sims[n-1].sim, {
+        move: mv>0?`<span class="move up">▲ ${mv}</span>`:mv<0?`<span class="move down">▼ ${-mv}</span>`:"",
+        facts: facts.length?`<div class="facts">${facts.map(factHTML).join("")}</div>`:"",
+        reason: r.reasons?.[n] ? `<div class="reason">${esc(r.reasons[n])}</div>` : ""});
+    }).join("");
+    const who = judgeKind === "claude" ? "Claude (quick tier)" : `${$("prov").value === "openai" ? "OpenAI" : "Anthropic"} ${esc($("mdl").value)}`;
+    $("lout").innerHTML = `<div class="eyebrow" style="color:var(--amber-ink)">Stage 2 · judge ranking · ${who}</div>` + rows +
+      (r.answer ? `<div class="ans ours"><span class="who">Answer from judge top-1</span><p>${esc(r.answer)}</p>${r.cited?`<span class="cite">Cites candidate ${esc([].concat(r.cited).join(", "))} (judge numbering = search rank)</span>`:''}</div>` : "") +
+      `<details><summary class="note" style="cursor:pointer">Show the stage 1 ranking again</summary>${stage1}</details>`;
+  } catch (e) {
+    const code = e && e.code;
+    const msg = {cancelled:"Stopped.", not_granted:"Claude was not allowed in this view.", rate_limited:"Too many requests right now. Try again in a minute.", invalid_json:"The judge's reply could not be read. Try again."}[code] || ("The judge request failed: " + esc(e.message || code || e));
+    $("lout").innerHTML = stage1 + `<p class="note">${msg}</p>`;
+  } finally { $("judge").disabled = false; $("stop").hidden = true; ctl = null; }
+}
+$("rank").onclick = runRank;
+$("judge").onclick = runJudge;
+$("stop").onclick = () => ctl?.abort();
+$("reset").onclick = loadExample;
+$("prov").onchange = () => { $("mdl").value = $("prov").value === "openai" ? "gpt-4.1" : "claude-sonnet-5-5"; };
+
+tabs(); render(false); loadExample();
+
+(async () => {
+  const chip = $("chipJudge");
+  if (!window.claude) {
+    judgeKind = "byok"; $("judgecfg").hidden = false;
+    chip.textContent = "Judge: your own API key (OpenAI GPT-4.1 as in the thesis, or Anthropic)"; chip.className = "chip";
+    return;
+  }
+  try { sample = await window.claude.use("sample"); } catch (e) { sample = null; }
+  if (sample) { judgeKind = "claude"; chip.textContent = "Judge and image descriptions: Claude"; chip.className = "chip ok"; }
+  else { judgeKind = null; chip.textContent = "Judge: sign in to Claude to run it here · stage 1 works without it"; chip.className = "chip warn"; }
+})();
+</script>
+
+</body></html>
