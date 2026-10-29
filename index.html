@@ -148,7 +148,11 @@ textarea{resize:vertical}
 .out .row{grid-template-columns:40px 48px minmax(0,1fr) 110px}
 .out .row .thumb{width:48px;height:48px}
 .out .row .thumb svg{width:40px;height:40px}
-.judgecfg{display:grid;grid-template-columns:160px 160px minmax(0,1fr);gap:8px;align-items:end}
+.judgecfg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-items:start}
+.tab.try{border-color:var(--amber);background:var(--amber-soft)}
+.tab.try b{color:var(--amber-ink)}
+.tab.try[aria-selected="true"]{box-shadow:inset 0 0 0 1px var(--amber)}
+code{font:12px var(--mono);background:var(--bg);padding:1px 4px;border-radius:3px}
 .thinking{font-family:var(--mono);font-size:13px;color:var(--amber-ink)}
 .prog{height:4px;background:var(--bg);border-radius:2px;overflow:hidden}
 .prog span{display:block;height:100%;width:0;background:var(--blue);transition:width .2s}
@@ -190,17 +194,10 @@ footer{font-size:12px;color:var(--muted);display:grid;gap:4px}
     <div class="byline">Omar Mellouli · <em>Diagnosing and Improving Low Retrieval Precision in Multimodal RAG via Agentic-based Multimodal HypergraphRAG</em></div>
   </header>
 
-  <details class="fig panel" style="padding:14px 16px" open>
-    <summary>The complete pipeline (thesis Fig. 4.8)</summary>
-    <figure class="pipe">
-      <img src="img/pipeline.webp" width="1346" height="750" alt="Complete pipeline: preparation phase extracts hyperedges once per corpus; query phase runs multimodal vector search for the top-5, looks up their hyperedges and lets an LLM judge rerank them with reasons before answer generation.">
-      <figcaption>Top: preparation, once per corpus (hyperedge extraction into a hypergraph). Bottom: per question, vector search for the top-5, fact lookup, and the LLM judge (step 4) that reranks with reasons.</figcaption>
-    </figure>
-  </details>
 
   <div class="tabs" role="tablist" id="tabs"></div>
 
-  <section class="panel" aria-label="Pipeline walkthrough">
+  <section class="panel" id="walk" aria-label="Pipeline walkthrough">
     <div class="stepper" id="stepper"></div>
     <div class="stage">
       <div class="controls">
@@ -218,18 +215,25 @@ footer{font-size:12px;color:var(--muted);display:grid;gap:4px}
     </div>
   </section>
 
-  <section class="panel live" id="live" aria-label="Live demo">
+  <section class="panel live" id="live" aria-label="Try it yourself" hidden>
     <div style="display:grid;gap:8px">
-      <div class="eyebrow">Try it yourself</div>
-      <h2>Your question, your candidates, two real models</h2>
-      <p class="explain">Stage 1 is an independent embedding model, <b style="color:var(--ink)">all-MiniLM-L6-v2</b>, that runs entirely in your browser: no account, no server, nothing leaves this page. Stage 2 is the LLM judge. Add images to the question or to any candidate; a vision model turns them into text first, as in my thesis (images as text, not CLIP).</p>
+      <div class="eyebrow">Try it yourself · two real models</div>
+      <h2>Your question, your evidence, your images</h2>
+      <p class="explain">Stage 1 is an independent embedding model, <b style="color:var(--ink)">all-MiniLM-L6-v2</b>, that runs entirely in your browser: no account, no server. Stage 2 is the judge, by default the open-source <b style="color:var(--ink)">Qwen2.5</b> model, also running in your browser on the GPU. Add images to the question or to any candidate: a vision model turns them into text first, as in my thesis (images as text, not CLIP).</p>
       <div class="chips"><span class="chip" id="chipModel">Embedding model: not loaded (23 MB)</span><span class="chip" id="chipJudge">Judge: checking…</span></div>
     </div>
 
-    <div class="judgecfg" id="judgecfg" hidden>
-      <div><label for="prov">Judge provider</label><select id="prov"><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option></select></div>
-      <div><label for="mdl">Model</label><input type="text" id="mdl" value="gpt-4.1"></div>
-      <div><label for="key">API key (kept in this tab only)</label><input type="password" id="key" placeholder="Paste a key to enable the judge and image descriptions" autocomplete="off"></div>
+    <div class="judgecfg">
+      <div><label for="prov">Judge and image model</label><select id="prov"></select></div>
+      <div id="cfgA"></div>
+      <div id="cfgB"></div>
+    </div>
+    <p class="note" id="cfgNote"></p>
+
+    <div class="controls">
+      <label for="exsel" style="margin:0">Example</label>
+      <select id="exsel" style="width:auto;min-width:260px"></select>
+      <button class="btn" id="reset">Load</button>
     </div>
 
     <div class="cols">
@@ -244,15 +248,22 @@ footer{font-size:12px;color:var(--muted);display:grid;gap:4px}
         </div>
         <div class="controls">
           <button class="btn blue" id="rank">1 · Rank by similarity</button>
-          <button class="btn amber" id="judge">2 · Run the LLM judge</button>
+          <button class="btn amber" id="judge">2 · Run the judge</button>
           <button class="btn" id="stop" hidden>Stop</button>
-          <button class="btn" id="reset">Load current example</button>
         </div>
         <div class="prog" id="prog" hidden><span></span></div>
       </div>
-      <div class="out" id="lout"><p class="note">Press “Rank by similarity” to run the embedding model on the five candidates. The first run downloads the model once (23 MB).</p></div>
+      <div class="out" id="lout"><p class="note">Press “Rank by similarity” to run the embedding model on the candidates. The first run downloads it once (23 MB).</p></div>
     </div>
   </section>
+
+  <details class="fig panel" style="padding:14px 16px" open>
+    <summary>The complete pipeline (thesis Fig. 4.8)</summary>
+    <figure class="pipe">
+      <img src="img/pipeline.webp" width="1346" height="750" alt="Complete pipeline: preparation phase extracts hyperedges once per corpus; query phase runs multimodal vector search for the top-5, looks up their hyperedges and lets an LLM judge rerank them with reasons before answer generation.">
+      <figcaption>Top: preparation, once per corpus (hyperedge extraction into a hypergraph). Bottom: per question, vector search for the top-5, fact lookup, and the LLM judge (step 4) that reranks with reasons.</figcaption>
+    </figure>
+  </details>
 
   <section class="panel results" aria-label="Results">
     <div style="display:grid;gap:6px">
@@ -271,8 +282,8 @@ footer{font-size:12px;color:var(--muted);display:grid;gap:4px}
   </section>
 
   <footer>
-    <span>The three examples are illustrative, written in the style of the thesis data (EHRXQA/MedHyperGraph, SulzerDataset, ScienceQA); they are not taken from the real corpora. The report thumbnails reuse the one sample X-ray from MedHyperGraph Fig. 1; the other thumbnails are drawn icons. Their similarity scores are real: computed with all-MiniLM-L6-v2, the same model the live panel runs. The thesis itself used OpenAI text-embedding-3-large and GPT-4.1.</span>
-    <span>All numbers in the results section are the measured thesis results. Embedding model: sentence-transformers/all-MiniLM-L6-v2 (Apache-2.0), int8 weights from the Xenova ONNX build, run here in plain JavaScript.</span>
+    <span>The three examples are illustrative, written in the style of the thesis data (EHRXQA/MedHyperGraph, SulzerDataset, ScienceQA); they are not taken from the real corpora. The report thumbnails reuse the one sample X-ray from MedHyperGraph Fig. 1; the other thumbnails are drawn icons. Their similarity scores are real: computed with all-MiniLM-L6-v2, the same model the live panel runs. The thesis itself used OpenAI text-embedding-3-large and GPT-4.1. The potassium example in “Try it yourself” is also illustrative; its lab chart is drawn for this demo.</span>
+    <span>All numbers in the results section are the measured thesis results. Embedding model: sentence-transformers/all-MiniLM-L6-v2 (Apache-2.0), int8 weights from the Xenova ONNX build, run here in plain JavaScript. Open-source judge: Qwen2.5-Instruct (Apache-2.0) and Phi-3.5-vision (MIT) through WebLLM, or Qwen2.5-VL through Ollama.</span>
   </footer>
 </div>
 
@@ -459,9 +470,17 @@ let S = SCEN[0], step = 0, playing = null;
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
+let mode = "walk";
 function tabs(){
-  $("tabs").innerHTML = SCEN.map(s => `<button class="tab" role="tab" aria-selected="${s===S}" data-id="${s.id}"><b>${s.tab}</b><span>${s.sub}</span></button>`).join("");
-  $("tabs").querySelectorAll(".tab").forEach(b => b.onclick = () => { stopPlay(); S = SCEN.find(x => x.id === b.dataset.id); step = 0; tabs(); render(false); loadExample(); });
+  $("tabs").innerHTML = SCEN.map(s => `<button class="tab" role="tab" aria-selected="${mode==="walk" && s===S}" data-id="${s.id}"><b>${s.tab}</b><span>${s.sub}</span></button>`).join("")
+    + `<button class="tab try" role="tab" aria-selected="${mode==="live"}" data-id="live"><b>Try it yourself</b><span>Your question · open-source models</span></button>`;
+  $("tabs").querySelectorAll(".tab").forEach(b => b.onclick = () => {
+    stopPlay();
+    if (b.dataset.id === "live") { mode = "live"; }
+    else { mode = "walk"; S = SCEN.find(x => x.id === b.dataset.id); step = 0; render(false); }
+    $("walk").hidden = mode !== "walk"; $("live").hidden = mode !== "live";
+    tabs();
+  });
 }
 function stepper(){
   $("stepper").innerHTML = STEPS.map((s,i) => `<button class="step ${i<step?'done':''} ${i===step?'on':''} ${s.judge?'judge':''}" data-i="${i}"><span class="n">STEP ${i+1}</span><span class="t">${s.t}</span></button>`).join("");
@@ -572,7 +591,7 @@ $("play").onclick = () => {
   playing = setInterval(() => { if (step >= STEPS.length-1) return stopPlay(); go(step+1); }, 2600);
 };
 document.addEventListener("keydown", e => {
-  if (e.target.closest("textarea,input,select")) return;
+  if (mode !== "walk" || e.target.closest("textarea,input,select")) return;
   if (e.key === "ArrowRight") { stopPlay(); go(step+1); }
   if (e.key === "ArrowLeft") { stopPlay(); go(step-1); }
 });
@@ -581,22 +600,52 @@ const BARS = [["Original benchmark","ScienceQA",32.78,"var(--bad)"],["Prepared b
 $("bars").innerHTML = BARS.map(([l,d,v,c]) => `<div class="brow"><span><b style="color:var(--ink);font-weight:500">${l}</b><br><span class="note">${d}</span></span><div class="track"><span style="width:${v}%;background:${c}"></span></div><span class="v">${v.toFixed(2)}%</span></div>`).join("")
   + `<div class="axis"><div></div><div><span>0</span><span>25</span><span>50</span><span>75</span><span>100%</span></div><div></div></div>`;
 
-/* =================== LIVE PANEL =================== */
+/* =================== TRY IT YOURSELF =================== */
+const GH_URL = "https://omarmellouli.github.io/evidence-judge/";
+const WEBLLM_URL = "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.86/+esm";
+const QWEN_MODELS = [
+  ["Qwen2.5-3B-Instruct-q4f16_1-MLC", "Qwen2.5-3B · ~2.5 GB GPU memory (default)"],
+  ["Qwen2.5-1.5B-Instruct-q4f16_1-MLC", "Qwen2.5-1.5B · ~1.6 GB, faster, weaker"],
+  ["Qwen2.5-7B-Instruct-q4f16_1-MLC", "Qwen2.5-7B · ~5 GB, strongest"]];
+const VISION_MODEL = "Phi-3.5-vision-instruct-q4f16_1-MLC";
+
+/* Default example: a second clinical case where the answer sits in a lab chart image */
+const LIVE_EXAMPLES = {
+  potassium: { label: "Medicine · potassium after spironolactone (default)",
+    q: "Did the patient's potassium rise above 5.5 mmol/L after spironolactone was started?", qimg: null, qdesc: "",
+    c: [
+      {text:"Guideline · hyperkalaemia with MRAs. Spironolactone can raise potassium; stop or reduce it if potassium rises above 5.5 mmol/L and recheck within 3 days.", thumb:"book"},
+      {text:"Discharge summary · admission 2104-11. Potassium 5.8 mmol/L on admission due to ACE inhibitor; resolved after dose reduction.", thumb:"ehr"},
+      {text:"Medication order · 2105-04-03. Spironolactone 25 mg once daily started for heart failure (HFrEF).", thumb:"pill"},
+      {text:"Nursing note · 2105-04-05. Patient feels well, eats normally; diet with bananas and oranges discussed.", thumb:"note"},
+      {text:"Lab chart · serum potassium, 2105-04-01 to 2105-04-08.", img:"img/k_chart.webp",
+       desc:"Line chart of serum potassium in mmol/L: 4.6 on 04-02, 4.9 on 04-04, 5.7 on 04-06, 5.2 on 04-08; dashed threshold line at 5.5; vertical marker at 04-03 labelled spironolactone 25 mg start."}],
+    note: "Illustrative case with a drawn lab chart. The answer is only in the chart image; similarity ranks the guideline first." }
+};
+SCEN.forEach(s => { LIVE_EXAMPLES[s.id] = { label: s.tab + " · " + s.q.slice(0, 48) + (s.q.length > 48 ? "…" : ""),
+  q: s.q + (s.opts ? " " + s.opts : ""), qimg: (S => S.pic && S.pic.endsWith(".webp") ? S.pic : null)(s),
+  qdesc: s.img ? s.img.replace(/^.*VLM description:\s*/,"").replace(/\s*\(VLM description\)\.?$/,"") : "",
+  c: s.cands.map(c => ({text: c.title + ". " + c.text, thumb: c.thumb.startsWith("xray") ? null : c.thumb})), note: s.src }; });
+
+ICON.pill = `<svg viewBox="0 0 64 64"><g transform="rotate(-35 32 32)"><rect x="12" y="24" width="40" height="16" rx="8" fill="#fff" stroke="${INK}" stroke-width="2.5"/><path d="M32 24v16" stroke="${INK}" stroke-width="2.5"/><rect x="13.5" y="25.5" width="17" height="13" rx="6.5" fill="${AM}"/></g><path d="M44 46h12M50 40v12" stroke="${BL}" stroke-width="3" stroke-linecap="round"/></svg>`;
+ICON.note = `<svg viewBox="0 0 64 64"><path d="M14 8h26l10 10v38H14z" fill="#fff" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round"/><path d="M40 8v10h10" fill="none" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round"/><path d="M20 26h24M20 33h24M20 40h16" stroke="${BL}" stroke-width="2"/><path d="M44 44l8-8 4 4-8 8h-4z" fill="${AM}"/></svg>`;
+
 const N = 5;
-const live = { q:{text:"",desc:"",blob:null,url:null,thumb:null}, c:[...Array(N)].map(()=>({text:"",desc:"",blob:null,url:null,thumb:null})), sims:null };
-let embedder = null, ctl = null, judgeKind = null, sample = null;
+const live = { q:{text:"",desc:"",blob:null,url:null,thumb:null}, c:[], sims:null };
+let embedder = null, ctl = null, sample = null, curEx = "potassium";
 
 function itemHTML(id, label, it, rows){
   const pic = it.url ? `<img src="${it.url}" alt="Attached image">` : it.thumb ? (ICON[it.thumb]||"").replace("<svg","<svg aria-hidden=\"true\"") : "＋<br>image";
-  return `<div class="tools"><div class="thumb" role="button" tabindex="0" title="Add or replace an image" data-pick="${id}">${pic}</div>${it.url?`<button class="btn small" data-clear="${id}">Remove</button>`:''}</div>
+  return `<div class="tools"><div class="thumb" role="button" tabindex="0" title="Add or replace an image" data-pick="${id}">${pic}</div>${it.url?`<button class="btn small" data-desc="${id}">Describe</button><button class="btn small" data-clear="${id}">Remove</button>`:''}</div>
     <div style="min-width:0"><textarea id="t_${id}" rows="${rows}" aria-label="${label}">${esc(it.text)}</textarea>
-    <div class="desc"><input type="text" id="d_${id}" value="${esc(it.desc)}" placeholder="Image description (filled by the vision model, or type it)" aria-label="${label} image description"></div></div>`;
+    <div class="desc"><input type="text" id="d_${id}" value="${esc(it.desc)}" placeholder="${it.url ? 'Image description: press Describe, or type it' : 'Image description (add an image, or type one)'}" aria-label="${label} image description"></div></div>`;
 }
 function drawItems(){
   $("qitem").innerHTML = itemHTML("q","Question",live.q,2);
   $("citems").innerHTML = live.c.map((it,i)=>`<div class="item">${itemHTML("c"+i,"Candidate "+(i+1),it,3)}</div>`).join("");
   document.querySelectorAll("[data-pick]").forEach(el => { const open = () => pickImage(el.dataset.pick); el.onclick = open; el.onkeydown = e => { if (e.key==="Enter"||e.key===" ") { e.preventDefault(); open(); } }; });
-  document.querySelectorAll("[data-clear]").forEach(el => el.onclick = () => { const it = getItem(el.dataset.clear); syncInputs(); if (it.url) URL.revokeObjectURL(it.url); it.blob = null; it.url = null; it.desc = ""; drawItems(); });
+  document.querySelectorAll("[data-clear]").forEach(el => el.onclick = () => { syncInputs(); const it = getItem(el.dataset.clear); if (it.url) URL.revokeObjectURL(it.url); it.blob = null; it.url = null; it.desc = ""; live.sims = null; drawItems(); });
+  document.querySelectorAll("[data-desc]").forEach(el => el.onclick = () => { syncInputs(); describe(el.dataset.desc); });
 }
 const getItem = id => id === "q" ? live.q : live.c[+id.slice(1)];
 function syncInputs(){
@@ -609,20 +658,21 @@ function pickImage(id){
     const f = inp.files && inp.files[0]; if (!f) return;
     syncInputs(); const it = getItem(id);
     if (it.url) URL.revokeObjectURL(it.url);
-    it.blob = f; it.url = URL.createObjectURL(f); it.desc = "";
+    it.blob = f; it.url = URL.createObjectURL(f); it.desc = ""; live.sims = null;
     drawItems(); await describe(id);
   };
   inp.click();
 }
-
-async function loadExample(){
-  live.q = {text: S.q + (S.opts ? " " + S.opts : ""), desc: S.img ? S.img.replace(/^.*VLM description:\s*/,"").replace(/\s*\(VLM description\)\.?$/,"") : "", blob:null, url:null, thumb:null};
-  live.c = S.cands.map(c => ({text: c.title + ". " + c.text, desc:"", blob:null, url:null, thumb: c.thumb.startsWith("xray") ? null : c.thumb}));
+async function fetchBlob(src){ try { const r = await fetch(src); return r.ok ? await r.blob() : null; } catch (e) { return null; } }
+async function loadExample(key){
+  curEx = key || curEx; const ex = LIVE_EXAMPLES[curEx];
+  live.q = {text: ex.q, desc: ex.qdesc || "", blob:null, url:null, thumb:null};
+  live.c = ex.c.map(c => ({text: c.text, desc: c.desc || "", blob:null, url:null, thumb: c.thumb || null}));
   live.sims = null; drawItems();
-  if (S.pic && S.pic.endsWith(".webp")) {
-    try { const r = await fetch(S.pic); const b = await r.blob(); live.q.blob = b; live.q.url = URL.createObjectURL(b); drawItems(); } catch (e) {}
-  }
-  $("lout").innerHTML = `<p class="note">Example loaded. Press “Rank by similarity” to compute the scores in your browser; they should match the walkthrough above.</p>`;
+  if (ex.qimg) { const b = await fetchBlob(ex.qimg); if (b) { live.q.blob = b; live.q.url = URL.createObjectURL(b); } }
+  for (let i = 0; i < ex.c.length; i++) if (ex.c[i].img) { const b = await fetchBlob(ex.c[i].img); if (b) { live.c[i].blob = b; live.c[i].url = URL.createObjectURL(b); } }
+  drawItems();
+  $("lout").innerHTML = `<p class="note">${esc(ex.note || "")}</p><p class="note">Press “Rank by similarity” to compute real scores in your browser.${ex.c.some(c=>c.img) ? " The chart's description is prefilled; press Describe to let the vision model read the image itself." : ""}</p>`;
 }
 
 /* ---------- Stage 1: in-browser embedding model ---------- */
@@ -643,7 +693,6 @@ async function getEmbedder(){
   await Promise.all(MODEL_FILES.map(async f => { bufs[f] = await fetchWithProgress("model/" + f, n => { got += n; const p = Math.min(100, Math.round(got/TOTAL*100)); bar.style.width = p + "%"; chip.textContent = `Embedding model: downloading ${p}%`; }); }));
   const dec = new TextDecoder();
   const man = JSON.parse(dec.decode(bufs["manifest.json"])), voc = dec.decode(bufs["vocab.txt"]);
-  // Prefer a worker so the page stays responsive; fall back to the main thread.
   try {
     const src = document.getElementById("minilm-src").textContent + `
       let M=null; onmessage=e=>{const d=e.data; if(d.init){M=new MiniLM(d.man,d.emb,d.lay,d.fl,d.voc); postMessage({ready:true}); return;}
@@ -680,7 +729,7 @@ async function runRank(){
     live.sims = sims;
     const ms = Math.round(performance.now() - t0);
     $("lout").innerHTML = `<div class="eyebrow">Stage 1 · similarity ranking · ${ms} ms in your browser</div>` + sims.map((s,r) => liveRow(s.i, r+1, s.sim)).join("") +
-      `<p class="note">This is what a plain vector search would hand to the answer model. Now run the judge to rerank by facts.</p>`;
+      `<p class="note">This is what plain vector search would hand to the answer model. Now run the judge to rerank by facts.</p>`;
     return sims;
   } catch (e) {
     $("lout").innerHTML = `<p class="note">The embedding model could not load here (${esc(e.message||e)}).</p>`; return null;
@@ -695,49 +744,124 @@ function liveRow(i, rank, sim, extra){
     <div class="sim"><span class="v">${sim.toFixed(3)}</span><div class="bar"><span style="width:${Math.max(4,Math.round(sim*100))}%"></span></div><small>cosine</small></div></div>`;
 }
 
-/* ---------- LLM access: Claude inside claude.ai, or the visitor's own key elsewhere ---------- */
+/* ---------- Judge / vision backends ---------- */
+const IN_CLAUDE = !!window.claude;
+const PROVIDERS = IN_CLAUDE
+  ? [["claude","Claude (built into claude.ai)"],["qwen-web","Qwen2.5 in your browser (GitHub version)"],["ollama","Qwen2.5-VL on your laptop via Ollama (GitHub version)"],["anthropic","Claude API with your key (GitHub version)"]]
+  : [["qwen-web","Qwen2.5 in your browser · open source (default)"],["ollama","Qwen2.5-VL on your laptop · Ollama"],["anthropic","Claude API · your own key"]];
+const cfg = { prov: IN_CLAUDE ? "claude" : "qwen-web", qwen: QWEN_MODELS[0][0], ollamaUrl: "http://localhost:11434", ollamaModel: "qwen2.5vl:7b", claudeModel: "claude-sonnet-5-5", key: "" };
+
+function drawCfg(){
+  $("prov").innerHTML = PROVIDERS.map(([v,l]) => `<option value="${v}" ${v===cfg.prov?'selected':''} ${IN_CLAUDE && v!=="claude" ? 'disabled' : ''}>${l}</option>`).join("");
+  const A = $("cfgA"), B = $("cfgB"), note = $("cfgNote");
+  A.innerHTML = B.innerHTML = "";
+  if (cfg.prov === "qwen-web") {
+    A.innerHTML = `<label for="qmodel">Qwen model</label><select id="qmodel">${QWEN_MODELS.map(([v,l])=>`<option value="${v}" ${v===cfg.qwen?'selected':''}>${l}</option>`).join("")}</select>`;
+    B.innerHTML = `<label>Image descriptions</label><div class="note" style="padding-top:8px">Phi-3.5-vision in your browser (~4.5 GB), loaded only when you describe an image. WebLLM has no Qwen vision model yet.</div>`;
+    note.innerHTML = navigator.gpu ? "Runs on your GPU through WebGPU (WebLLM). The first use downloads the model from Hugging Face and caches it in the browser; later runs start in seconds. Nothing you type leaves your computer."
+                                   : "<b style='color:var(--bad)'>This browser has no WebGPU.</b> Use a recent Chrome or Edge on a laptop, or switch to Ollama or the Claude API.";
+    $("qmodel").onchange = e => { cfg.qwen = e.target.value; };
+  } else if (cfg.prov === "ollama") {
+    A.innerHTML = `<label for="omodel">Ollama model</label><input type="text" id="omodel" value="${esc(cfg.ollamaModel)}">`;
+    B.innerHTML = `<label for="ourl">Ollama address</label><input type="text" id="ourl" value="${esc(cfg.ollamaUrl)}">`;
+    note.innerHTML = `One-time setup on your laptop: <code>ollama pull qwen2.5vl:7b</code>, then start Ollama with <code>OLLAMA_ORIGINS=${esc(location.origin)} ollama serve</code>. Allow local network access if the browser asks. One model does both images and judging.`;
+    $("omodel").oninput = e => cfg.ollamaModel = e.target.value.trim(); $("ourl").oninput = e => cfg.ollamaUrl = e.target.value.trim().replace(/\/$/,"");
+  } else if (cfg.prov === "anthropic") {
+    A.innerHTML = `<label for="cmodel">Claude model</label><input type="text" id="cmodel" value="${esc(cfg.claudeModel)}">`;
+    B.innerHTML = `<label for="key">Anthropic API key (kept in this tab only)</label><input type="password" id="key" value="${esc(cfg.key)}" placeholder="sk-ant-…" autocomplete="off">`;
+    note.textContent = "The key stays in this browser tab and is sent only to api.anthropic.com. Nothing is stored.";
+    $("cmodel").oninput = e => cfg.claudeModel = e.target.value.trim(); $("key").oninput = e => cfg.key = e.target.value.trim();
+  } else {
+    note.innerHTML = sample ? `Judge and image descriptions run on Claude for anyone signed in to claude.ai. The open-source Qwen version runs on the GitHub site: <a href="${GH_URL}" target="_blank" rel="noopener">${GH_URL.replace("https://","")}</a>.`
+                            : `Sign in to Claude to run the judge here, or use the GitHub version with open-source Qwen models: <a href="${GH_URL}" target="_blank" rel="noopener">${GH_URL.replace("https://","")}</a>. Stage 1 works either way.`;
+  }
+  const chip = $("chipJudge");
+  const name = {claude:"Claude", "qwen-web":"Qwen2.5 · in browser", ollama:"Qwen2.5-VL · Ollama", anthropic:"Claude API"}[cfg.prov];
+  chip.textContent = "Judge: " + name; chip.className = "chip " + (judgeReady() ? "ok" : "warn");
+}
+$("prov").onchange = e => { cfg.prov = e.target.value; drawCfg(); };
+function judgeReady(){
+  if (cfg.prov === "claude") return !!sample;
+  if (cfg.prov === "qwen-web") return !!navigator.gpu;
+  if (cfg.prov === "anthropic") return !!cfg.key;
+  return true;
+}
+
 async function blobToDataURL(b){ return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(b); }); }
+async function toJPEGDataURL(b, max=896){ // normalise any image to a modest JPEG for the vision models
+  try { const bmp = await createImageBitmap(b); const s = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas"); c.width = Math.round(bmp.width*s); c.height = Math.round(bmp.height*s);
+    const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0,0,c.width,c.height); g.drawImage(bmp,0,0,c.width,c.height); return c.toDataURL("image/jpeg", 0.9);
+  } catch (e) { return blobToDataURL(b); }
+}
+function parseJSON(t){ try { return JSON.parse(t); } catch (e) { const a = t.indexOf("{"), b = t.lastIndexOf("}"); return JSON.parse(t.slice(a, b+1)); } }
+
+let webllm = null, engine = null, engineId = null;
+async function getEngine(id){
+  if (engine && engineId === id) return engine;
+  if (!navigator.gpu) throw new Error("WebGPU is not available in this browser");
+  if (!webllm) { status("Loading the WebLLM runtime…"); try { webllm = await import("./vendor/web-llm-0.2.86.js"); } catch (e) { webllm = await import(WEBLLM_URL); } }
+  if (engine) { try { await engine.unload(); } catch (e) {} engine = null; }
+  const prog = $("prog"), bar = prog.firstElementChild; prog.hidden = false;
+  engine = await webllm.CreateMLCEngine(id, { initProgressCallback: p => { bar.style.width = Math.round((p.progress||0)*100) + "%"; status(`${id.replace(/-q4f16_1-MLC$/,"")}: ${p.text}`); } });
+  engineId = id; prog.hidden = true;
+  return engine;
+}
+function status(t){ const el = $("lstatus"); if (el) el.textContent = t; }
+
 const LLM = {
-  available(){ if (judgeKind === "claude") return true; if (judgeKind === "byok") return !!$("key").value.trim(); return false; },
   async ask(prompt, {images=[], json=false, signal}={}){
-    if (judgeKind === "claude") {
+    const p = cfg.prov;
+    if (p === "claude") {
+      if (!sample) throw new Error("Claude is not available in this view");
       const opt = {modelTier:"quick", cache:false, signal}; if (images.length) opt.images = images;
       return json ? sample.json(prompt, opt) : (await sample(prompt, opt)).text;
     }
-    const prov = $("prov").value, key = $("key").value.trim(), model = $("mdl").value.trim();
-    if (prov === "openai") {
-      const content = [{type:"text", text: prompt}]; for (const b of images) content.push({type:"image_url", image_url:{url: await blobToDataURL(b)}});
-      const r = await fetch("https://api.openai.com/v1/chat/completions", {method:"POST", signal, headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
-        body: JSON.stringify({model, messages:[{role:"user", content}], temperature:0, ...(json?{response_format:{type:"json_object"}}:{})})});
-      const d = await r.json(); if (!r.ok) throw new Error(d.error?.message || r.status);
-      const t = d.choices[0].message.content; return json ? parseJSON(t) : t;
-    } else {
-      const content = []; for (const b of images) { const u = await blobToDataURL(b); content.push({type:"image", source:{type:"base64", media_type:u.slice(5,u.indexOf(";")), data:u.slice(u.indexOf(",")+1)}}); }
+    if (p === "qwen-web") {
+      const eng = await getEngine(images.length ? VISION_MODEL : cfg.qwen);
+      status(images.length ? "Phi-3.5-vision is reading the image…" : "Qwen is reading the facts…");
+      const content = images.length ? [{type:"text", text:prompt}, ...(await Promise.all(images.map(async b => ({type:"image_url", image_url:{url: await toJPEGDataURL(b)}}))))] : prompt;
+      const r = await eng.chat.completions.create({messages:[{role:"user", content}], temperature:0, max_tokens: json ? 900 : 200, ...(json?{response_format:{type:"json_object"}}:{})});
+      const t = r.choices[0].message.content || ""; return json ? parseJSON(t) : t;
+    }
+    if (p === "ollama") {
+      const imgs = await Promise.all(images.map(async b => (await toJPEGDataURL(b)).split(",")[1]));
+      const r = await fetch(cfg.ollamaUrl + "/api/chat", {method:"POST", signal, headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({model: cfg.ollamaModel, stream:false, options:{temperature:0}, ...(json?{format:"json"}:{}), messages:[{role:"user", content: prompt, ...(imgs.length?{images:imgs}:{})}]})});
+      const d = await r.json(); if (!r.ok || d.error) throw new Error(d.error || r.status);
+      const t = d.message?.content || ""; return json ? parseJSON(t) : t;
+    }
+    if (p === "anthropic") {
+      if (!cfg.key) throw new Error("Paste an Anthropic API key first");
+      const content = []; for (const b of images) { const u = await toJPEGDataURL(b); content.push({type:"image", source:{type:"base64", media_type:"image/jpeg", data:u.slice(u.indexOf(",")+1)}}); }
       content.push({type:"text", text: prompt + (json ? "\n\nReply with only the JSON." : "")});
-      const r = await fetch("https://api.anthropic.com/v1/messages", {method:"POST", signal, headers:{"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-        body: JSON.stringify({model, max_tokens:1500, messages:[{role:"user", content}]})});
+      const r = await fetch("https://api.anthropic.com/v1/messages", {method:"POST", signal, headers:{"Content-Type":"application/json","x-api-key":cfg.key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body: JSON.stringify({model: cfg.claudeModel, max_tokens:1500, messages:[{role:"user", content}]})});
       const d = await r.json(); if (!r.ok) throw new Error(d.error?.message || r.status);
       const t = d.content.map(c => c.text || "").join(""); return json ? parseJSON(t) : t;
     }
+    throw new Error("No model selected");
   }
 };
-function parseJSON(t){ try { return JSON.parse(t); } catch (e) { const a = t.indexOf("{"), b = t.lastIndexOf("}"); return JSON.parse(t.slice(a, b+1)); } }
 
 async function describe(id){
   const it = getItem(id), inp = $("d_"+id);
-  if (!LLM.available()) { inp.placeholder = "No vision model here: type what the image shows"; inp.focus(); return; }
+  if (!it.blob) return;
+  if (!judgeReady()) { inp.placeholder = "No vision model available here: type what the image shows"; inp.focus(); return; }
   inp.value = ""; inp.placeholder = "Describing the image…";
+  $("lout").insertAdjacentHTML("afterbegin", `<p class="thinking" id="lstatus">Starting the vision model…</p>`);
   try {
-    const t = await LLM.ask("Describe this image for a retrieval system in one or two factual sentences: what it shows, any visible text, labels, values, findings or regions. No preamble.", {images:[it.blob]});
-    it.desc = t.trim().replace(/\s+/g," "); inp.value = it.desc; inp.placeholder = "Image description";
-  } catch (e) { inp.placeholder = "Description failed: type what the image shows"; }
+    const t = await LLM.ask("Describe this image for a retrieval system in one or two factual sentences: what it shows, any visible text, labels, values, dates, findings or regions. No preamble.", {images:[it.blob]});
+    it.desc = t.trim().replace(/\s+/g," "); inp.value = it.desc; inp.placeholder = "Image description"; live.sims = null;
+  } catch (e) { inp.placeholder = "Description failed (" + (e.message || e.code || e) + "): type what the image shows"; }
+  finally { $("lstatus")?.remove(); }
 }
 
 async function runJudge(){
   syncInputs();
   let sims = live.sims;
   if (!sims) sims = await runRank(); if (!sims) return;
-  if (!LLM.available()) { $("lout").insertAdjacentHTML("beforeend", `<p class="note">${judgeKind==="byok" ? "Paste an API key above to run the judge." : "The judge needs Claude. Open this page signed in to Claude, or use the standalone version with your own key."}</p>`); return; }
+  if (!judgeReady()) { $("lout").insertAdjacentHTML("beforeend", `<p class="note">${cfg.prov==="anthropic" ? "Paste an Anthropic API key above to run the judge." : cfg.prov==="qwen-web" ? "This browser has no WebGPU: choose Ollama or the Claude API above." : `The judge here needs a Claude sign-in. The open-source version: <a href="${GH_URL}" target="_blank" rel="noopener">${GH_URL.replace("https://","")}</a>`}</p>`); return; }
   const cs = sims.map(s => live.c[s.i]);
   const prompt = `You are the evidence judge in a retrieval-augmented question-answering system.
 Question: ${fullText(live.q)}
@@ -746,7 +870,7 @@ Candidates, in the order vector search ranked them (rank 1 = most similar):
 ${cs.map((c,i)=>`[${i+1}] ${fullText(c)}`).join("\n")}
 
 Do this:
-1. For each candidate, extract 1-3 n-ary facts (hyperedges) as short arrays of 2-4 parts, e.g. ["bearing temperature","trip","100 °C"].
+1. For each candidate, extract 1-3 n-ary facts (hyperedges) as short arrays of 2-4 parts, e.g. ["potassium","5.7 mmol/L","2105-04-06"].
 2. Rerank the candidates. Prefer the candidate whose facts directly express the fact or rule needed to answer the question, not one that only matches the topic or shares words. Treat the search rank as a prior: promote a lower candidate only when its evidence is clearly better. Respect dates and time windows if the question has them.
 3. Give one short reason (max 20 words) per candidate.
 4. Answer the question in one sentence using only the top-ranked evidence (and supporting candidates if needed), or say the evidence is insufficient.
@@ -754,8 +878,8 @@ Do this:
 Reply with only JSON of this shape:
 {"ranking":[3,1,2],"facts":{"1":[["a","b","c"]]},"reasons":{"1":"..."},"answer":"...","cited":[3]}`;
   ctl = new AbortController(); $("judge").disabled = true; $("stop").hidden = false;
-  const stage1 = $("lout").innerHTML;
-  $("lout").innerHTML = `<div class="thinking">The judge is reading the facts…</div>`;
+  const stage1 = $("lout").innerHTML, t0 = performance.now();
+  $("lout").innerHTML = `<div class="thinking" id="lstatus">The judge is reading the facts…</div>`;
   try {
     const r = await LLM.ask(prompt, {json:true, signal: ctl.signal});
     const rk = (Array.isArray(r.ranking) ? r.ranking : []).map(Number).filter(n => n>=1 && n<=cs.length).filter((n,i,a)=>a.indexOf(n)===i);
@@ -765,12 +889,13 @@ Reply with only JSON of this shape:
       const mv = n - (pos+1);
       return liveRow(sims[n-1].i, pos+1, sims[n-1].sim, {
         move: mv>0?`<span class="move up">▲ ${mv}</span>`:mv<0?`<span class="move down">▼ ${-mv}</span>`:"",
-        facts: facts.length?`<div class="facts">${facts.map(factHTML).join("")}</div>`:"",
+        facts: facts.length?`<div class="facts">${facts.map(f=>factHTML(f.map(String))).join("")}</div>`:"",
         reason: r.reasons?.[n] ? `<div class="reason">${esc(r.reasons[n])}</div>` : ""});
     }).join("");
-    const who = judgeKind === "claude" ? "Claude (quick tier)" : `${$("prov").value === "openai" ? "OpenAI" : "Anthropic"} ${esc($("mdl").value)}`;
-    $("lout").innerHTML = `<div class="eyebrow" style="color:var(--amber-ink)">Stage 2 · judge ranking · ${who}</div>` + rows +
-      (r.answer ? `<div class="ans ours"><span class="who">Answer from judge top-1</span><p>${esc(r.answer)}</p>${r.cited?`<span class="cite">Cites candidate ${esc([].concat(r.cited).join(", "))} (judge numbering = search rank)</span>`:''}</div>` : "") +
+    const who = {claude:"Claude", "qwen-web": cfg.qwen.replace(/-q4f16_1-MLC$/,"") + " in your browser", ollama: esc(cfg.ollamaModel) + " via Ollama", anthropic: esc(cfg.claudeModel)}[cfg.prov];
+    const secs = ((performance.now()-t0)/1000).toFixed(1);
+    $("lout").innerHTML = `<div class="eyebrow" style="color:var(--amber-ink)">Stage 2 · judge ranking · ${who} · ${secs} s</div>` + rows +
+      (r.answer ? `<div class="ans ours"><span class="who">Answer from judge top-1</span><p>${esc(r.answer)}</p>${r.cited?`<span class="cite">Cites candidate ${esc([].concat(r.cited).join(", "))} (numbers = search rank)</span>`:''}</div>` : "") +
       `<details><summary class="note" style="cursor:pointer">Show the stage 1 ranking again</summary>${stage1}</details>`;
   } catch (e) {
     const code = e && e.code;
@@ -780,23 +905,19 @@ Reply with only JSON of this shape:
 }
 $("rank").onclick = runRank;
 $("judge").onclick = runJudge;
-$("stop").onclick = () => ctl?.abort();
-$("reset").onclick = loadExample;
-$("prov").onchange = () => { $("mdl").value = $("prov").value === "openai" ? "gpt-4.1" : "claude-sonnet-5-5"; };
+$("stop").onclick = () => { ctl?.abort(); if (cfg.prov === "qwen-web" && engine) { try { engine.interruptGenerate(); } catch (e) {} } };
+$("exsel").innerHTML = Object.entries(LIVE_EXAMPLES).map(([k,v]) => `<option value="${k}">${esc(v.label)}</option>`).join("");
+$("exsel").onchange = e => loadExample(e.target.value);
+$("reset").onclick = () => loadExample($("exsel").value);
 
-tabs(); render(false); loadExample();
+tabs(); render(false); loadExample("potassium"); drawCfg();
 
 (async () => {
-  const chip = $("chipJudge");
-  if (!window.claude) {
-    judgeKind = "byok"; $("judgecfg").hidden = false;
-    chip.textContent = "Judge: your own API key (OpenAI GPT-4.1 as in the thesis, or Anthropic)"; chip.className = "chip";
-    return;
-  }
+  if (!IN_CLAUDE) return;
   try { sample = await window.claude.use("sample"); } catch (e) { sample = null; }
-  if (sample) { judgeKind = "claude"; chip.textContent = "Judge and image descriptions: Claude"; chip.className = "chip ok"; }
-  else { judgeKind = null; chip.textContent = "Judge: sign in to Claude to run it here · stage 1 works without it"; chip.className = "chip warn"; }
+  drawCfg();
 })();
+
 </script>
 
 </body></html>
